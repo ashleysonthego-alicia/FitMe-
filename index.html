@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FitMe — Your Health Journey</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; overflow: hidden; }
+
+  :root {
+    --ocean: #1D9E75;
+    --ocean-dark: #085041;
+    --ocean-light: #E1F5EE;
+    --ocean-mid: #0F6E56;
+    --shell: #D85A30;
+    --sky: #378ADD;
+    --sky-light: #E6F1FB;
+    --sky-dark: #0C447C;
+    --gold: #EF9F27;
+    --gold-light: #FAEEDA;
+    --gold-dark: #633806;
+    --sand: #FFF8EE;
+    --bg: #ffffff;
+    --bg2: #f8f9fa;
+    --text: #1a1a1a;
+    --text2: #6b7280;
+    --text3: #9ca3af;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.2);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+  }
+
+  .app-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea22 0%, #764ba222 100%);
+    padding: 12px;
+  }
+
+  .phone {
+    width: 390px;
+    height: 844px;
+    max-height: calc(100vh - 24px);
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.08);
+    position: relative;
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    background: var(--ocean);
+    color: white;
+    padding: 14px 20px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  /* SCREENS */
+  .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .screen.active { display: flex; }
+
+  /* ---- ONBOARDING ---- */
+  .onboard-header {
+    background: var(--ocean);
+    color: white;
+    padding: 14px 20px 18px;
+    flex-shrink: 0;
+  }
+  .onboard-header h1 { font-size: 22px; font-weight: 600; }
+  .onboard-header p { font-size: 13px; opacity: 0.85; margin-top: 3px; }
+
+  .onboard-body { flex: 1; overflow-y: auto; padding: 18px; }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .step-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .step-sub { font-size: 13px; color: var(--text2); margin-bottom: 18px; line-height: 1.4; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 5px; }
+  .field input, .field select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--ocean); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+  .chip {
+    padding: 7px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--bg);
+    color: var(--text);
+    transition: all 0.15s;
+    user-select: none;
+    font-family: inherit;
+  }
+  .chip.on { background: var(--ocean-light); border-color: var(--ocean); color: var(--ocean-dark); font-weight: 500; }
+
+  .world-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+  .world-card {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 13px 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    background: var(--bg);
+  }
+  .world-card.on { border-color: var(--ocean); background: var(--ocean-light); }
+  .world-card .wicon { font-size: 28px; display: block; margin-bottom: 5px; }
+  .world-card .wname { font-size: 13px; font-weight: 600; color: var(--text); }
+  .world-card .wdesc { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  .info-box {
+    border-radius: var(--radius-sm);
+    padding: 11px 13px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .info-box.warn { background: #FAEEDA; border: 1px solid #FAC775; color: #633806; }
+  .info-box.safe { background: var(--ocean-light); border: 1px solid #9FE1CB; color: var(--ocean-dark); }
+
+  .upload-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 28px 16px;
+    text-align: center;
+    margin-bottom: 14px;
+    background: var(--bg2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .upload-zone:hover { border-color: var(--ocean); background: var(--ocean-light); }
+  .upload-zone .up-icon { font-size: 36px; color: var(--text2); display: block; margin-bottom: 8px; }
+  .upload-zone p { font-size: 13px; color: var(--text2); }
+  .upload-zone small { font-size: 11px; color: var(--text3); display: block; margin-top: 3px; }
+
+  .notif-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg2);
+    border-radius: var(--radius-sm);
+    padding: 13px;
+    margin-bottom: 14px;
+  }
+  .notif-row i { font-size: 24px; color: var(--ocean); }
+  .notif-row .nr-text { flex: 1; }
+  .notif-row .nr-text strong { font-size: 14px; color: var(--text); display: block; }
+  .notif-row .nr-text span { font-size: 12px; color: var(--text2); }
+  .notif-row input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--ocean); cursor: pointer; }
+
+  .btn { width: 100%; padding: 14px; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; margin-bottom: 8px; }
+  .btn-primary { background: var(--ocean); color: white; }
+  .btn-primary:hover { background: var(--ocean-mid); }
+  .btn-secondary { background: var(--bg2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #eee; }
+
+  .dots { display: flex; justify-content: center; gap: 7px; padding: 12px 0 10px; flex-shrink: 0; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); transition: all 0.2s; }
+  .dot.on { background: var(--ocean); width: 18px; border-radius: 4px; }
+
+  /* ---- BOTTOM NAV ---- */
+  .nav {
+    display: flex;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 6px 0 16px;
+    flex-shrink: 0;
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    font-size: 10px;
+    color: var(--text2);
+    border: none;
+    background: none;
+    padding: 5px 0;
+    font-family: inherit;
+    transition: color 0.15s;
+  }
+  .nav-btn i { font-size: 22px; }
+  .nav-btn.on { color: var(--ocean); }
+
+  /* ---- PATH SCREEN ---- */
+  .path-header {
+    padding: 14px 18px 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .ph-row { display: flex; justify-content: space-between; align-items: center; }
+  .ph-title { font-size: 16px; font-weight: 600; color: var(--text); }
+  .ph-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 20px; font-size: 13px; font-weight: 500; }
+  .badge-gold { background: var(--gold-light); color: var(--gold-dark); }
+  .badge-ocean { background: var(--ocean-light); color: var(--ocean-dark); }
+  .badges-row { display: flex; gap: 8px; margin-top: 10px; }
+
+  .path-area { flex: 1; overflow-y: auto; padding: 16px 20px 8px; background: linear-gradient(180deg, #E8F8FF 0%, #FFF8EE 50%, #E8F5EE 100%); }
+
+  .day-sep { text-align: center; font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin: 14px 0 10px; }
+  .week-sep { text-align: center; font-size: 11px; color: var(--text3); border-top: 1px dashed var(--border); padding-top: 12px; margin: 16px 0 8px; }
+
+  .stone-row { display: flex; justify-content: center; margin-bottom: 6px; }
+  .stone-row.offset-r .stone { margin-right: 80px; }
+  .stone-row.offset-l .stone { margin-left: 80px; }
+
+  .stone {
+    width: 68px; height: 68px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s;
+    border: 3px solid transparent;
+    position: relative;
+  }
+  .stone:hover { transform: scale(1.07); }
+  .stone .sicon { font-size: 24px; line-height: 1; }
+  .stone .slabel { font-size: 9px; font-weight: 600; margin-top: 2px; }
+  .stone.done { background: var(--ocean); border-color: var(--ocean-dark); }
+  .stone.done .slabel { color: rgba(255,255,255,0.8); }
+  .stone.done .sicon { filter: grayscale(0); }
+  .stone.cur { background: white; border-color: var(--ocean); animation: glow 2s infinite; }
+  .stone.cur .slabel { color: var(--ocean-dark); }
+  .stone.lock { background: #e5e7eb; border-color: #d1d5db; opacity: 0.7; cursor: default; }
+  .stone.lock .slabel { color: #9ca3af; }
+  @keyframes glow { 0%,100% { box-shadow: 0 0 0 4px rgba(29,158,117,0.15); } 50% { box-shadow: 0 0 0 10px rgba(29,158,117,0.06); } }
+
+  .stone .check-ring {
+    position: absolute;
+    top: -3px; right: -3px;
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    border: 2px solid var(--ocean);
+    display: none;
+  }
+  .stone.done .check-ring { display: flex; }
+
+  .path-bottom { display: flex; gap: 8px; padding: 10px 16px; background: var(--bg); border-top: 1px solid var(--border); flex-shrink: 0; }
+  .path-action {
+    flex: 1;
+    padding: 10px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .path-action:hover { background: var(--ocean-light); border-color: var(--ocean); color: var(--ocean-dark); }
+  .path-action i { font-size: 16px; color: var(--ocean); }
+
+  /* ---- TASK MODAL ---- */
+  .modal-bg {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 50;
+    display: none;
+    align-items: flex-end;
+  }
+  .modal-bg.open { display: flex; }
+  .modal-sheet {
+    background: var(--bg);
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    padding: 18px 18px 32px;
+    max-height: 75%;
+    overflow-y: auto;
+  }
+  .modal-handle { width: 38px; height: 4px; background: #e5e7eb; border-radius: 2px; margin: 0 auto 16px; }
+  .modal-icon { font-size: 48px; text-align: center; margin-bottom: 8px; }
+  .modal-name { font-size: 17px; font-weight: 600; text-align: center; color: var(--text); margin-bottom: 6px; }
+  .modal-desc { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.55; margin-bottom: 18px; }
+  .modal-pts { display: inline-flex; align-items: center; gap: 6px; background: #EAF3DE; color: #27500A; padding: 7px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; margin: 0 auto 18px; }
+  .pts-wrap { text-align: center; }
+
+  .water-cups { display: flex; gap: 7px; justify-content: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .wcup { font-size: 28px; cursor: pointer; opacity: 0.3; transition: opacity 0.2s; }
+  .wcup.full { opacity: 1; }
+
+  .breathe-wrap { text-align: center; margin-bottom: 18px; }
+  .breathe-circle {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: var(--sky-light);
+    border: 2px solid var(--sky);
+    margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; color: var(--sky-dark);
+    transition: transform 3s ease;
+  }
+  .breathe-circle.expand { transform: scale(1.5); }
+  .breathe-circle.contract { transform: scale(1); }
+
+  .avoid-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+  .avoid-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    transition: all 0.15s;
+    background: var(--bg2);
+  }
+  .avoid-item.on { background: #EAF3DE; border-color: #639922; color: #27500A; }
+  .avoid-item .ai-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+
+  /* ---- KIT SCREEN ---- */
+  .kit-header {
+    background: var(--sky);
+    color: white;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .kit-av { width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .kit-info h2 { font-size: 17px; font-weight: 600; }
+  .kit-info p { font-size: 12px; opacity: 0.85; margin-top: 1px; }
+  .kit-mic { margin-left: auto; font-size: 22px; cursor: pointer; opacity: 0.9; border: none; background: none; color: white; }
+
+  .chat-area { flex: 1; overflow-y: auto; padding: 14px; background: #f8fafc; display: flex; flex-direction: column; gap: 10px; }
+  .bubble { max-width: 82%; padding: 11px 14px; font-size: 14px; line-height: 1.5; }
+  .b-kit { background: white; border: 1px solid var(--border); border-radius: 4px 16px 16px 16px; align-self: flex-start; color: var(--text); }
+  .b-user { background: var(--sky); color: white; border-radius: 16px 4px 16px 16px; align-self: flex-end; }
+  .qr-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .qr { padding: 7px 12px; border: 1px solid var(--sky); border-radius: 14px; font-size: 12px; color: var(--sky-dark); cursor: pointer; background: var(--sky-light); font-family: inherit; font-weight: 500; transition: all 0.15s; }
+  .qr:hover { background: #B5D4F4; }
+
+  .kit-input-row { padding: 10px 14px; background: white; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+  .kit-inp { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 22px; font-size: 14px; font-family: inherit; color: var(--text); outline: none; }
+  .kit-inp:focus { border-color: var(--sky); }
+  .kit-send { width: 38px; height: 38px; border-radius: 50%; background: var(--sky); color: white; border: none; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* ---- SHOP SCREEN ---- */
+  .shop-header { padding: 14px 18px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .shop-title { font-size: 17px; font-weight: 600; color: var(--text); }
+  .shop-scroll { flex: 1; overflow-y: auto; padding: 14px; }
+  .shop-sec { margin-bottom: 22px; }
+  .shop-sec-hdr { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .shop-sec-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .shop-sec-cost { font-size: 12px; color: var(--text2); }
+  .shop-items { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .shop-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .shop-item:hover { border-color: var(--ocean); background: var(--ocean-light); }
+  .shop-item.owned { border-color: var(--ocean); background: #f0fdf4; }
+  .si-icon { font-size: 32px; margin-bottom: 6px; }
+  .si-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .si-cost { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .si-owned { font-size: 10px; color: var(--ocean); font-weight: 600; margin-top: 3px; }
+
+  /* ---- PROFILE SCREEN ---- */
+  .profile-header { padding: 13px 18px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .profile-scroll { flex: 1; overflow-y: auto; padding: 16px; }
+  .avatar-section { text-align: center; padding: 8px 0 18px; }
+  .big-avatar { width: 82px; height: 82px; border-radius: 50%; background: var(--ocean-light); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 38px; border: 3px solid var(--ocean); }
+  .av-name { font-size: 19px; font-weight: 600; color: var(--text); }
+  .av-world { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+  .stat-c { background: var(--bg2); border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; }
+  .stat-n { font-size: 22px; font-weight: 700; color: var(--text); }
+  .stat-l { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .sec-h { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  .prog-wrap { background: var(--bg2); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; }
+  .prog-lr { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+  .prog-lr span:first-child { font-weight: 500; color: var(--text); }
+  .prog-lr span:last-child { color: var(--text2); }
+  .pbar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+  .pfill { height: 100%; border-radius: 4px; background: var(--ocean); }
+  .pfill.gold { background: var(--gold); }
+  .pts-table { background: var(--bg2); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+  .pts-row { padding: 10px 14px; display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .pts-row:last-child { border-bottom: none; }
+  .pts-pts { font-weight: 600; color: #27500A; }
+
+  /* TOAST */
+  .toast {
+    position: absolute;
+    bottom: 100px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30,30,30,0.88);
+    color: white;
+    padding: 11px 20px;
+    border-radius: 22px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+  }
+  .toast.show { opacity: 1; }
+
+  /* SETTINGS MODAL */
+  .settings-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 60;
+    display: none;
+  }
+  .settings-overlay.open { display: flex; align-items: flex-end; }
+  .settings-sheet {
+    background: var(--bg);
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    padding: 18px 18px 36px;
+    max-height: 80%;
+    overflow-y: auto;
+  }
+  .settings-row { display: flex; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--border); gap: 12px; cursor: pointer; }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row i { font-size: 22px; color: var(--ocean); width: 26px; }
+  .sr-text strong { font-size: 14px; color: var(--text); display: block; }
+  .sr-text span { font-size: 12px; color: var(--text2); }
+  .sr-arrow { margin-left: auto; color: var(--text3); font-size: 18px; }
+
+  @media (max-height: 860px) {
+    .phone { height: calc(100vh - 24px); border-radius: 30px; }
+  }
+  @media (max-width: 420px) {
+    .phone { width: 100%; border-radius: 0; }
+    .app-wrap { padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="app-wrap">
+<div class="phone" id="phone">
+
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <span style="font-weight:700;font-size:14px;">FitMe 🏖️</span>
+    <span><i class="ti ti-wifi" style="font-size:14px"></i> <i class="ti ti-battery-2" style="font-size:14px"></i></span>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ===== ONBOARDING ===== -->
+  <div class="screen active" id="screen-onboard">
+    <div class="onboard-header">
+      <h1>Welcome to FitMe 🌟</h1>
+      <p>Let's personalize your health journey</p>
+    </div>
+    <div class="onboard-body">
+
+      <!-- Step 1 -->
+      <div class="step active" id="ob1">
+        <p class="step-title">About you</p>
+        <p class="step-sub">Your profile helps us build a sustainable, personalized plan</p>
+        <div class="field">
+          <label>Your name (we'll call you "Friend" if blank)</label>
+          <input type="text" id="inp-name" placeholder="Name">
+        </div>
+        <div class="two-col">
+          <div class="field"><label>Age</label><input type="number" id="inp-age" placeholder="e.g. 34"></div>
+          <div class="field"><label>Gender</label>
+            <select id="inp-gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Units of measure</label>
+          <div class="chips">
+            <button class="chip on" onclick="solo(this)">lbs (default)</button>
+            <button class="chip" onclick="solo(this)">kg</button>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="field"><label>Current weight</label><input type="number" id="inp-cw" placeholder="e.g. 185"></div>
+          <div class="field"><label>Goal weight</label><input type="number" id="inp-gw" placeholder="e.g. 155"></div>
+        </div>
+        <div class="field"><label>Target date</label><input type="date" id="inp-date"></div>
+        <div class="info-box warn">
+          <i class="ti ti-info-circle" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>
+          Based on AHA guidelines, we'll set a healthy pace. Fad diets are not recommended — we'll show expected healthy progression.
+        </div>
+        <button class="btn btn-primary" onclick="obGo(2)">Continue →</button>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step" id="ob2">
+        <p class="step-title">Allergies & Sensitivities</p>
+        <p class="step-sub">Selected items will be excluded from all meal plans</p>
+        <div class="chips">
+          <button class="chip" onclick="tog(this)">Milk</button>
+          <button class="chip" onclick="tog(this)">Eggs</button>
+          <button class="chip" onclick="tog(this)">Wheat</button>
+          <button class="chip" onclick="tog(this)">Peanuts</button>
+          <button class="chip" onclick="tog(this)">Tree Nuts</button>
+          <button class="chip" onclick="tog(this)">Soybeans</button>
+          <button class="chip" onclick="tog(this)">Sesame</button>
+          <button class="chip" onclick="tog(this)">Fish</button>
+          <button class="chip" onclick="tog(this)">Shellfish</button>
+          <button class="chip" onclick="tog(this)">Vegetarian</button>
+          <button class="chip" onclick="tog(this)">Vegan</button>
+          <button class="chip" onclick="tog(this)">Diabetes 🩺</button>
+        </div>
+        <p class="step-title">Choose Your World</p>
+        <p class="step-sub">Your world sets your theme, currency, and shop rewards</p>
+        <div class="world-grid" id="world-grid">
+          <div class="world-card on" onclick="pickWorld(this)"><span class="wicon">🏖️</span><p class="wname">Beach</p><p class="wdesc">Shells &amp; starfish</p></div>
+          <div class="world-card" onclick="pickWorld(this)"><span class="wicon">🏙️</span><p class="wname">City</p><p class="wdesc">City coins</p></div>
+          <div class="world-card" onclick="pickWorld(this)"><span class="wicon">🌾</span><p class="wname">Country</p><p class="wdesc">Harvest tokens</p></div>
+          <div class="world-card" onclick="pickWorld(this)"><span class="wicon">🌲</span><p class="wname">Forest</p><p class="wdesc">Acorns</p></div>
+          <div class="world-card" onclick="pickWorld(this)"><span class="wicon">🏔️</span><p class="wname">Mountain</p><p class="wdesc">Summit gems</p></div>
+          <div class="world-card" onclick="pickWorld(this)"><span class="wicon">🚀</span><p class="wname">Sci-Fi</p><p class="wdesc">Starcoins</p></div>
+        </div>
+        <button class="btn btn-primary" onclick="obGo(3)">Continue →</button>
+        <button class="btn btn-secondary" onclick="obGo(1)">← Back</button>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step" id="ob3">
+        <p class="step-title">Activity Preferences</p>
+        <p class="step-sub">We'll mix these into your daily exercise steps</p>
+        <div class="chips">
+          <button class="chip" onclick="tog(this)">🚶 Walking</button>
+          <button class="chip" onclick="tog(this)">🏃 Running</button>
+          <button class="chip" onclick="tog(this)">🚴 Cycling</button>
+          <button class="chip" onclick="tog(this)">🤸 Aerobics</button>
+          <button class="chip on" onclick="tog(this)">🧘 Yoga</button>
+          <button class="chip" onclick="tog(this)">🧘 Pilates</button>
+          <button class="chip on" onclick="tog(this)">🏋️ Weights</button>
+          <button class="chip" onclick="tog(this)">💪 Strength</button>
+          <button class="chip" onclick="tog(this)">⚽ Team Sports</button>
+        </div>
+        <p class="step-title" style="margin-top:4px">Your Temptations</p>
+        <p class="step-sub">We'll add "I avoided" steps after meals to keep you accountable</p>
+        <div class="chips">
+          <button class="chip on" onclick="tog(this)">🍰 Desserts</button>
+          <button class="chip" onclick="tog(this)">🍿 Snacks</button>
+          <button class="chip" onclick="tog(this)">🍔 Fast Foods</button>
+          <button class="chip on" onclick="tog(this)">📦 Processed</button>
+          <button class="chip" onclick="tog(this)">🥤 Sodas</button>
+          <button class="chip" onclick="tog(this)">🍷 Alcohol</button>
+          <button class="chip" onclick="tog(this)">🥐 Baked Goods</button>
+          <button class="chip on" onclick="tog(this)">🍦 Ice Cream</button>
+          <button class="chip" onclick="tog(this)">🍭 Sweets</button>
+          <button class="chip" onclick="tog(this)">🥔 Chips</button>
+        </div>
+        <button class="btn btn-primary" onclick="obGo(4)">Continue →</button>
+        <button class="btn btn-secondary" onclick="obGo(2)">← Back</button>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step" id="ob4">
+        <p class="step-title">Your Progression Avatar</p>
+        <p class="step-sub">Upload a fully-dressed photo. We'll create an AI progression image and a cartoon avatar stored only on your device.</p>
+        <div class="upload-zone" onclick="toast('📸 Camera / gallery access would open here')">
+          <i class="ti ti-camera up-icon"></i>
+          <p>Tap to upload your photo</p>
+          <small>Fully-dressed images only · Stored locally only</small>
+        </div>
+        <div class="info-box safe">
+          <i class="ti ti-shield-lock" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>
+          <strong style="display:inline">Privacy:</strong> Photos never leave your device. Only your avatar is used in-app. No nude, suggestive, or pornographic images are permitted.
+        </div>
+        <div class="notif-row">
+          <i class="ti ti-bell"></i>
+          <div class="nr-text"><strong>Allow notifications</strong><span>Hydration reminders, Kit check-ins, daily motivation</span></div>
+          <input type="checkbox" checked>
+        </div>
+        <button class="btn btn-primary" onclick="launchApp()">Start My Journey 🏖️</button>
+        <button class="btn btn-secondary" onclick="obGo(3)">← Back</button>
+      </div>
+
+    </div>
+    <div class="dots">
+      <div class="dot on" id="d1"></div>
+      <div class="dot" id="d2"></div>
+      <div class="dot" id="d3"></div>
+      <div class="dot" id="d4"></div>
+    </div>
+  </div>
+
+  <!-- ===== PATH SCREEN ===== -->
+  <div class="screen" id="screen-path">
+    <div class="path-header">
+      <div class="ph-row">
+        <div><p class="ph-title" id="path-day-title">Day 4 of 365</p><p class="ph-sub">Friday, May 8 · Beach World 🏖️</p></div>
+      </div>
+      <div class="badges-row">
+        <span class="badge badge-gold"><i class="ti ti-flame"></i> <span id="streak-val">4</span>-day streak</span>
+        <span class="badge badge-ocean"><i class="ti ti-coin"></i> <span id="shells-val">1,240</span> shells</span>
+      </div>
+    </div>
+
+    <div class="path-area" id="path-area">
+      <div class="day-sep">Today — May 8</div>
+      <!-- Stones injected by JS -->
+    </div>
+
+    <div class="path-bottom">
+      <button class="path-action" onclick="weeklyAction('Stock Up','🛒','Your personalized shopping list for this week\'s meal plan has been generated.',20)">
+        <i class="ti ti-shopping-cart"></i> Stock Up
+      </button>
+      <button class="path-action" onclick="weeklyAction('Meal Prep','👨‍🍳','Your weekly meal prep guide is ready — batch cook grains, chop veggies, and boil eggs in advance!',20)">
+        <i class="ti ti-tools-kitchen-2"></i> Meal Prep
+      </button>
+    </div>
+    <div class="nav">
+      <button class="nav-btn on" onclick="goTab('path')"><i class="ti ti-route"></i>Path</button>
+      <button class="nav-btn" onclick="goTab('kit')"><i class="ti ti-message-circle"></i>Kit</button>
+      <button class="nav-btn" onclick="goTab('shop')"><i class="ti ti-shopping-bag"></i>Shop</button>
+      <button class="nav-btn" onclick="goTab('profile')"><i class="ti ti-user"></i>Me</button>
+    </div>
+  </div>
+
+  <!-- ===== KIT SCREEN ===== -->
+  <div class="screen" id="screen-kit">
+    <div class="kit-header">
+      <div class="kit-av">🤖</div>
+      <div class="kit-info"><h2>Kit</h2><p>Your AI wellness partner · Always here for you</p></div>
+      <button class="kit-mic" onclick="toast('🎙️ Speak to Kit — tap and hold to record')" aria-label="Voice input"><i class="ti ti-microphone"></i></button>
+    </div>
+    <div class="chat-area" id="chat-area">
+      <div class="bubble b-kit">Hey! I'm Kit 👋 I'm here to cheer you on every single day. How are you feeling right now?</div>
+      <div class="qr-row">
+        <button class="qr" onclick="kitQ('Doing great! 💪')">Doing great! 💪</button>
+        <button class="qr" onclick="kitQ('Struggling a bit 😞')">Struggling a bit</button>
+        <button class="qr" onclick="kitQ('Need a meal idea 🍽️')">Meal idea?</button>
+        <button class="qr" onclick="kitQ('Need an exercise video 🏋️')">Exercise video</button>
+        <button class="qr" onclick="kitQ('Not sure what to eat 🤔')">What should I eat?</button>
+        <button class="qr" onclick="kitQ('I haven\'t had water today 💧')">Haven't had water</button>
+      </div>
+    </div>
+    <div class="kit-input-row">
+      <input class="kit-inp" id="kit-inp" type="text" placeholder="Talk to Kit..." onkeydown="if(event.key==='Enter')kitSend()">
+      <button class="kit-send" onclick="kitSend()" aria-label="Send"><i class="ti ti-send"></i></button>
+    </div>
+    <div class="nav">
+      <button class="nav-btn" onclick="goTab('path')"><i class="ti ti-route"></i>Path</button>
+      <button class="nav-btn on" onclick="goTab('kit')"><i class="ti ti-message-circle"></i>Kit</button>
+      <button class="nav-btn" onclick="goTab('shop')"><i class="ti ti-shopping-bag"></i>Shop</button>
+      <button class="nav-btn" onclick="goTab('profile')"><i class="ti ti-user"></i>Me</button>
+    </div>
+  </div>
+
+  <!-- ===== SHOP SCREEN ===== -->
+  <div class="screen" id="screen-shop">
+    <div class="shop-header">
+      <p class="shop-title">Avatar Shop 🐚</p>
+      <span class="badge badge-ocean"><i class="ti ti-coin"></i> <span id="shop-shells">1,240</span> shells</span>
+    </div>
+    <div class="shop-scroll">
+      <div class="shop-sec">
+        <div class="shop-sec-hdr"><p class="shop-sec-name">Accessories</p><p class="shop-sec-cost">500 shells each</p></div>
+        <div class="shop-items">
+          <div class="shop-item" id="item-hat" onclick="buy('Straw Hat 👒','item-hat',500)"><p class="si-icon">👒</p><p class="si-name">Straw Hat</p><p class="si-cost">🐚 500</p></div>
+          <div class="shop-item" id="item-shades" onclick="buy('Sunglasses 🕶️','item-shades',500)"><p class="si-icon">🕶️</p><p class="si-name">Sunglasses</p><p class="si-cost">🐚 500</p></div>
+          <div class="shop-item" id="item-lei" onclick="buy('Flower Lei 💐','item-lei',500)"><p class="si-icon">💐</p><p class="si-name">Flower Lei</p><p class="si-cost">🐚 500</p></div>
+          <div class="shop-item" id="item-surf" onclick="buy('Surfboard 🏄','item-surf',500)"><p class="si-icon">🏄</p><p class="si-name">Surfboard</p><p class="si-cost">🐚 500</p></div>
+          <div class="shop-item" id="item-bag" onclick="buy('Beach Bag 👜','item-bag',500)"><p class="si-icon">👜</p><p class="si-name">Beach Bag</p><p class="si-cost">🐚 500</p></div>
+          <div class="shop-item" id="item-umbrella" onclick="buy('Beach Umbrella ☂️','item-umbrella',500)"><p class="si-icon">☂️</p><p class="si-name">Beach Umbrella</p><p class="si-cost">🐚 500</p></div>
+        </div>
+      </div>
+      <div class="shop-sec">
+        <div class="shop-sec-hdr"><p class="shop-sec-name">Outfits</p><p class="shop-sec-cost">1,500 shells each</p></div>
+        <div class="shop-items">
+          <div class="shop-item" id="item-beach-out" onclick="buy('Beach Outfit 👙','item-beach-out',1500)"><p class="si-icon">👙</p><p class="si-name">Beach Outfit</p><p class="si-cost">🐚 1,500</p></div>
+          <div class="shop-item" id="item-trunks" onclick="buy('Surf Trunks 🩳','item-trunks',1500)"><p class="si-icon">🩳</p><p class="si-name">Surf Trunks</p><p class="si-cost">🐚 1,500</p></div>
+          <div class="shop-item" id="item-sarong" onclick="buy('Sarong 🧣','item-sarong',1500)"><p class="si-icon">🧣</p><p class="si-name">Sarong</p><p class="si-cost">🐚 1,500</p></div>
+          <div class="shop-item" id="item-wetsuit" onclick="buy('Wetsuit 🤿','item-wetsuit',1500)"><p class="si-icon">🤿</p><p class="si-name">Wetsuit</p><p class="si-cost">🐚 1,500</p></div>
+        </div>
+      </div>
+      <div class="shop-sec">
+        <div class="shop-sec-hdr"><p class="shop-sec-name">Experiences</p><p class="shop-sec-cost">5,000 shells each</p></div>
+        <div class="shop-items">
+          <div class="shop-item" id="item-cruise" onclick="buy('Sunset Cruise 🚢','item-cruise',5000)"><p class="si-icon">🚢</p><p class="si-name">Sunset Cruise</p><p class="si-cost">🐚 5,000</p></div>
+          <div class="shop-item" id="item-villa" onclick="buy('Island Villa 🏝️','item-villa',5000)"><p class="si-icon">🏝️</p><p class="si-name">Island Villa</p><p class="si-cost">🐚 5,000</p></div>
+          <div class="shop-item" id="item-dive" onclick="buy('Scuba Dive 🐠','item-dive',5000)"><p class="si-icon">🐠</p><p class="si-name">Scuba Dive</p><p class="si-cost">🐚 5,000</p></div>
+          <div class="shop-item" id="item-luau" onclick="buy('Luau Party 🌺','item-luau',5000)"><p class="si-icon">🌺</p><p class="si-name">Luau Party</p><p class="si-cost">🐚 5,000</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn" onclick="goTab('path')"><i class="ti ti-route"></i>Path</button>
+      <button class="nav-btn" onclick="goTab('kit')"><i class="ti ti-message-circle"></i>Kit</button>
+      <button class="nav-btn on" onclick="goTab('shop')"><i class="ti ti-shopping-bag"></i>Shop</button>
+      <button class="nav-btn" onclick="goTab('profile')"><i class="ti ti-user"></i>Me</button>
+    </div>
+  </div>
+
+  <!-- ===== PROFILE SCREEN ===== -->
+  <div class="screen" id="screen-profile">
+    <div class="profile-header">
+      <p style="font-size:17px;font-weight:600;color:var(--text)">My Profile</p>
+      <button style="border:none;background:none;color:var(--ocean);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit" onclick="openSettings()">Settings ⚙️</button>
+    </div>
+    <div class="profile-scroll">
+      <div class="avatar-section">
+        <div class="big-avatar">🏖️</div>
+        <p class="av-name" id="prof-name">Alex</p>
+        <p class="av-world">Beach World · <span id="prof-days">4</span> days active</p>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-c"><p class="stat-n" id="ps-streak" style="color:var(--ocean)">4</p><p class="stat-l">Day streak</p></div>
+        <div class="stat-c"><p class="stat-n" id="ps-shells">1,240</p><p class="stat-l">Shells</p></div>
+        <div class="stat-c"><p class="stat-n" id="ps-lost" style="color:var(--shell)">−3</p><p class="stat-l">lbs lost</p></div>
+      </div>
+      <p class="sec-h">Today's Progress</p>
+      <div class="prog-wrap">
+        <div class="prog-lr"><span>Daily tasks</span><span id="task-prog-txt">4 / 11</span></div>
+        <div class="pbar"><div class="pfill" id="task-prog-bar" style="width:36%"></div></div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-lr"><span>Hydration</span><span id="water-prog-txt">0 / 8 cups</span></div>
+        <div class="pbar"><div class="pfill" id="water-prog-bar" style="width:0%"></div></div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-lr"><span>Weight goal</span><span>3 lbs / 30 lbs</span></div>
+        <div class="pbar"><div class="pfill gold" style="width:10%"></div></div>
+      </div>
+      <p class="sec-h" style="margin-top:4px">Shell Earning Guide 🐚</p>
+      <div class="pts-table">
+        <div class="pts-row"><span>Healthy meal (B/L/D)</span><span class="pts-pts">+15 🐚</span></div>
+        <div class="pts-row"><span>Avoid a temptation</span><span class="pts-pts">+10 🐚</span></div>
+        <div class="pts-row"><span>Drink water (per 8oz)</span><span class="pts-pts">+3 🐚</span></div>
+        <div class="pts-row"><span>Walk after meal</span><span class="pts-pts">+10 🐚</span></div>
+        <div class="pts-row"><span>Aerobic exercise (10 min)</span><span class="pts-pts">+20 🐚</span></div>
+        <div class="pts-row"><span>Stretching (per 5 min)</span><span class="pts-pts">+5 🐚</span></div>
+        <div class="pts-row"><span>4-7-8 breathing (per min)</span><span class="pts-pts">+1 🐚</span></div>
+        <div class="pts-row"><span>Meal plan / Stock Up / Prep</span><span class="pts-pts">+20 🐚</span></div>
+        <div class="pts-row"><span>Streak (any 1 task/day)</span><span class="pts-pts">+1 🐚</span></div>
+      </div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn" onclick="goTab('path')"><i class="ti ti-route"></i>Path</button>
+      <button class="nav-btn" onclick="goTab('kit')"><i class="ti ti-message-circle"></i>Kit</button>
+      <button class="nav-btn" onclick="goTab('shop')"><i class="ti ti-shopping-bag"></i>Shop</button>
+      <button class="nav-btn on" onclick="goTab('profile')"><i class="ti ti-user"></i>Me</button>
+    </div>
+  </div>
+
+  <!-- TASK MODAL -->
+  <div class="modal-bg" id="task-modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-icon" id="m-icon">💧</div>
+      <p class="modal-name" id="m-name">Task</p>
+      <p class="modal-desc" id="m-desc">Description</p>
+      <div class="pts-wrap"><div class="modal-pts" id="m-pts"><i class="ti ti-coin"></i> +15 shells</div></div>
+      <div id="m-water" style="display:none;margin-top:14px">
+        <p style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:10px">Tap each cup as you drink it (8oz each)</p>
+        <div class="water-cups" id="wcups">
+          <span class="wcup" onclick="cupTap(this)">💧</span>
+          <span class="wcup" onclick="cupTap(this)">💧</span>
+          <span class="wcup" onclick="cupTap(this)">💧</span>
+          <span class="wcup" onclick="cupTap(this)">💧</span>
+          <span class="wcup" onclick="cupTap(this)">💧</span>
+          <span class="wcup" onclick="cupTap(this)">💧</span>
+          <span class="wcup" onclick="cupTap(this)">💧</span>
+          <span class="wcup" onclick="cupTap(this)">💧</span>
+        </div>
+      </div>
+      <div id="m-avoid" style="display:none;margin-top:14px">
+        <p style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:10px">Which temptation did you avoid?</p>
+        <div class="avoid-grid">
+          <div class="avoid-item" onclick="tog(this)"><span class="ai-icon">🍰</span>Dessert</div>
+          <div class="avoid-item" onclick="tog(this)"><span class="ai-icon">🍿</span>Snack</div>
+          <div class="avoid-item" onclick="tog(this)"><span class="ai-icon">🍔</span>Fast Food</div>
+          <div class="avoid-item" onclick="tog(this)"><span class="ai-icon">🍦</span>Ice Cream</div>
+          <div class="avoid-item" onclick="tog(this)"><span class="ai-icon">🥤</span>Soda</div>
+          <div class="avoid-item" onclick="tog(this)"><span class="ai-icon">📦</span>Processed</div>
+        </div>
+      </div>
+      <div id="m-breathe" style="display:none;margin-top:14px">
+        <div class="breathe-wrap">
+          <div class="breathe-circle" id="breathe-circle">Inhale</div>
+          <p style="font-size:13px;color:var(--text2)">4-7-8 breathing exercise</p>
+          <p style="font-size:12px;color:var(--text3);margin-top:4px">Inhale 4s · Hold 7s · Exhale 8s</p>
+        </div>
+        <button class="btn btn-secondary" id="breathe-btn" onclick="startBreathe()" style="margin-bottom:8px">▶ Start Breathing Exercise</button>
+        <p id="breathe-pts" style="text-align:center;font-size:12px;color:var(--text2)"></p>
+      </div>
+      <div id="m-meal" style="display:none;margin-top:14px">
+        <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
+          <p id="meal-suggestion" style="font-size:13px;color:var(--text);line-height:1.55"></p>
+        </div>
+        <p style="font-size:12px;color:var(--text3);text-align:center">Tap "Mark Complete" after you eat</p>
+      </div>
+      <div style="margin-top:16px">
+        <button class="btn btn-primary" onclick="completeTask()">✓ Mark Complete</button>
+        <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="settings-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+    <div class="settings-sheet">
+      <div class="modal-handle"></div>
+      <p style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:14px">Settings</p>
+      <div class="settings-row" onclick="toast('✏️ Edit profile opened')"><i class="ti ti-user-edit"></i><div class="sr-text"><strong>Edit Profile</strong><span>Name, age, weight, goals</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" onclick="toast('🌍 World selector opened')"><i class="ti ti-world"></i><div class="sr-text"><strong>Change World</strong><span>Beach, City, Forest, Sci-Fi…</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" onclick="toast('🥗 Allergies &amp; sensitivities editor')"><i class="ti ti-leaf"></i><div class="sr-text"><strong>Allergies &amp; Sensitivities</strong><span>Meal plan exclusions</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" onclick="toast('🏋️ Activity preferences editor')"><i class="ti ti-run"></i><div class="sr-text"><strong>Activity Preferences</strong><span>Your preferred exercises</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" onclick="toast('🔔 Notification settings opened')"><i class="ti ti-bell"></i><div class="sr-text"><strong>Notifications</strong><span>Reminders, Kit messages</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" onclick="toast('🔒 Privacy &amp; data settings')"><i class="ti ti-shield-lock"></i><div class="sr-text"><strong>Privacy &amp; Data</strong><span>Your data stays local &amp; encrypted</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" onclick="toast('📊 Admin stats — authorized access only')"><i class="ti ti-chart-bar"></i><div class="sr-text"><strong>Admin Dashboard</strong><span>Aggregate usage statistics</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <button class="btn btn-secondary" onclick="closeSettings()" style="margin-top:10px">Close</button>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /app-wrap -->
+
+<script>
+// ---- STATE ----
+let shells = 1240;
+let tasksCompleted = 4;
+let totalTasks = 11;
+let cupsOfWater = 0;
+let breatheTimer = null;
+let breatheSeconds = 0;
+let currentTask = null;
+let userName = 'Alex';
+
+// ---- ONBOARDING ----
+let obStep = 1;
+function obGo(n) {
+  document.getElementById('ob'+obStep).classList.remove('active');
+  document.getElementById('d'+obStep).classList.remove('on');
+  obStep = n;
+  document.getElementById('ob'+obStep).classList.add('active');
+  document.getElementById('d'+obStep).classList.add('on');
+}
+function tog(el) { el.classList.toggle('on'); }
+function solo(el) { el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); }
+function pickWorld(el) { document.querySelectorAll('.world-card').forEach(c=>c.classList.remove('on')); el.classList.add('on'); }
+
+function launchApp() {
+  const n = document.getElementById('inp-name').value.trim();
+  userName = n || 'Friend';
+  document.getElementById('prof-name').textContent = userName;
+  document.getElementById('screen-onboard').classList.remove('active');
+  document.getElementById('screen-path').classList.add('active');
+  buildPath();
+  toast('🎉 Welcome to Beach World, ' + userName + '!');
+}
+
+// ---- CLOCK ----
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours(); const m = now.getMinutes();
+  document.getElementById('clock').textContent = h + ':' + (m<10?'0':'')+m;
+}
+updateClock(); setInterval(updateClock, 30000);
+
+// Set default target date to 1 year from today
+const td = document.getElementById('inp-date');
+if(td){ const d=new Date(); d.setFullYear(d.getFullYear()+1); td.value=d.toISOString().split('T')[0]; }
+
+// ---- PATH ----
+const STONES = [
+  {id:'meal-plan', icon:'📋', label:'Meal Plan', state:'done', pts:20, type:'meal-plan'},
+  {id:'stretch-am', icon:'🤸', label:'Stretch', state:'done', pts:5, type:'stretch'},
+  {id:'breakfast', icon:'🍽️', label:'Breakfast', state:'done', pts:15, type:'meal', meal:'Overnight oats with mixed berries, chia seeds & almond butter. Rich in fibre and heart-healthy fats (AHA approved).'},
+  {id:'avoid-b', icon:'🚫', label:'Avoided', state:'done', pts:10, type:'avoid'},
+  {id:'water1', icon:'💧', label:'Hydrate', state:'cur', pts:3, type:'water'},
+  {id:'breathe1', icon:'🫁', label:'Breathe', state:'lock', pts:1, type:'breathe'},
+  {id:'lunch', icon:'🍽️', label:'Lunch', state:'lock', pts:15, type:'meal', meal:'Mediterranean salad with grilled chicken, quinoa, cucumbers, olives & lemon-olive oil dressing. High protein, anti-inflammatory.'},
+  {id:'avoid-l', icon:'🚫', label:'Avoided', state:'lock', pts:10, type:'avoid'},
+  {id:'exercise', icon:'🏋️', label:'Exercise', state:'lock', pts:20, type:'exercise'},
+  {id:'snack', icon:'🍎', label:'Snack', state:'lock', pts:15, type:'meal', meal:'Apple slices with almond butter, or hummus with carrot & celery sticks. Keeps blood sugar stable.'},
+  {id:'avoid-s', icon:'🚫', label:'Avoided', state:'lock', pts:10, type:'avoid'},
+  {id:'dinner', icon:'🍽️', label:'Dinner', state:'lock', pts:15, type:'meal', meal:'Baked salmon with roasted asparagus and brown rice. Omega-3 rich — excellent for heart health (AHA guideline).'},
+  {id:'avoid-d', icon:'🚫', label:'Avoided', state:'lock', pts:10, type:'avoid'},
+  {id:'water2', icon:'💧', label:'Hydrate', state:'lock', pts:3, type:'water'},
+  {id:'walk', icon:'🚶', label:'Walk', state:'lock', pts:10, type:'walk'},
+  {id:'breathe2', icon:'🫁', label:'Breathe', state:'lock', pts:1, type:'breathe'},
+];
+
+function buildPath() {
+  const area = document.getElementById('path-area');
+  area.innerHTML = '<div class="day-sep">Today — May 8</div>';
+  STONES.forEach((s,i) => {
+    const row = document.createElement('div');
+    row.className = 'stone-row ' + (i%2===0 ? 'offset-r' : 'offset-l');
+    row.innerHTML = `<div class="stone ${s.state}" id="st-${s.id}" onclick="openTask('${s.id}')">
+      <span class="sicon">${s.icon}</span>
+      <span class="slabel">${s.label}</span>
+      <span class="check-ring">✓</span>
+    </div>`;
+    area.appendChild(row);
+  });
+  area.innerHTML += '<div class="week-sep">— End of Day 4 · Week 1 of 52 —</div>';
+
+  // Day 5 preview (all locked)
+  area.innerHTML += '<div class="day-sep" style="margin-top:20px">Day 5 — May 9</div>';
+  ['📋','🤸','🍽️','🚫','💧','🏋️','🍽️','🚫','🍎','🍽️','🚶'].forEach((ic,i) => {
+    const row = document.createElement('div');
+    row.className = 'stone-row ' + (i%2===0?'offset-r':'offset-l');
+    row.innerHTML = `<div class="stone lock"><span class="sicon">${ic}</span><span class="slabel" style="font-size:8px">Tomorrow</span></div>`;
+    area.appendChild(row);
+  });
+}
+
+// ---- TASKS ----
+const taskData = {
+  'meal-plan': { icon:'📋', name:'Weekly Meal Plan', desc:'Your personalized 7-day meal plan is generated based on AHA guidelines and your dietary preferences. Tap below to mark this week\'s plan complete.', pts:'+20 shells (weekly)', type:'none' },
+  'stretch-am': { icon:'🤸', name:'Morning Stretch', desc:'5 minutes of gentle stretching to wake up your body and improve flexibility. Focus on neck rolls, shoulder shrugs, quad stretches and toe touches.', pts:'+5 shells per 5 min', type:'none' },
+  'breakfast': { icon:'🍽️', name:'Healthy Breakfast', desc:'', pts:'+15 shells', type:'meal', meal:'Overnight oats with mixed berries, chia seeds & almond butter. Rich in fibre and heart-healthy fats (AHA approved).' },
+  'avoid-b': { icon:'🚫', name:'I Avoided a Temptation', desc:'Great discipline! Which temptation did you resist after breakfast?', pts:'+10 shells each', type:'avoid' },
+  'water1': { icon:'💧', name:'Hydration', desc:'Drinking enough water carries nutrients to your cells, normalizes blood pressure, aids digestion, and can help you feel full between meals.', pts:'+3 shells per 8oz cup', type:'water' },
+  'breathe1': { icon:'🫁', name:'4-7-8 Breathing', desc:'A calming mid-morning breathing exercise. Inhale for 4 counts, hold for 7, exhale for 8. Earn 1 shell for each minute you practice.', pts:'+1 shell per minute', type:'breathe' },
+  'lunch': { icon:'🍽️', name:'Healthy Lunch', desc:'', pts:'+15 shells', type:'meal', meal:'Mediterranean salad with grilled chicken, quinoa, cucumbers, olives & lemon-olive oil dressing. High protein, anti-inflammatory.' },
+  'avoid-l': { icon:'🚫', name:'I Avoided a Temptation', desc:'Which temptation did you resist after lunch?', pts:'+10 shells each', type:'avoid' },
+  'exercise': { icon:'🏋️', name:'Exercise Session', desc:'Today\'s workout: 20 minutes of yoga flow or a brisk walk (based on your preferences). AHA recommends 150 min of moderate aerobic activity per week.', pts:'+20 shells per 10 min', type:'none' },
+  'snack': { icon:'🍎', name:'Healthy Snack', desc:'', pts:'+15 shells', type:'meal', meal:'Apple slices with almond butter, or hummus with carrot & celery sticks. Keeps blood sugar stable.' },
+  'avoid-s': { icon:'🚫', name:'I Avoided a Temptation', desc:'Which temptation did you resist at snack time?', pts:'+10 shells each', type:'avoid' },
+  'dinner': { icon:'🍽️', name:'Healthy Dinner', desc:'', pts:'+15 shells', type:'meal', meal:'Baked salmon with roasted asparagus and brown rice. Omega-3 rich — excellent for heart health (AHA guideline).' },
+  'avoid-d': { icon:'🚫', name:'I Avoided a Temptation', desc:'Which temptation did you resist after dinner?', pts:'+10 shells each', type:'avoid' },
+  'water2': { icon:'💧', name:'Evening Hydration', desc:'Stay hydrated through the evening. Each 8oz cup earns shells and supports your body\'s overnight recovery.', pts:'+3 shells per 8oz cup', type:'water' },
+  'walk': { icon:'🚶', name:'Post-Dinner Walk', desc:'A 10-15 minute walk after dinner aids digestion and burns extra calories. One of the most effective habits for sustainable weight loss!', pts:'+10 shells', type:'none' },
+  'breathe2': { icon:'🫁', name:'Evening Wind-Down', desc:'End your day with 4-7-8 breathing to reduce cortisol and prepare your body for restful sleep. Earn 1 shell per minute.', pts:'+1 shell per minute', type:'breathe' },
+};
+
+function openTask(id) {
+  const t = taskData[id]; if(!t) return;
+  currentTask = id;
+  document.getElementById('m-icon').textContent = t.icon;
+  document.getElementById('m-name').textContent = t.name;
+  document.getElementById('m-desc').textContent = t.type==='meal'?'':t.desc;
+  document.getElementById('m-pts').innerHTML = '<i class="ti ti-coin"></i> ' + t.pts;
+  document.getElementById('m-water').style.display = t.type==='water' ? 'block' : 'none';
+  document.getElementById('m-avoid').style.display = t.type==='avoid' ? 'block' : 'none';
+  document.getElementById('m-breathe').style.display = t.type==='breathe' ? 'block' : 'none';
+  document.getElementById('m-meal').style.display = t.type==='meal' ? 'block' : 'none';
+  if(t.type==='meal') document.getElementById('meal-suggestion').textContent = t.meal || '';
+  if(t.type==='breathe') { document.getElementById('breathe-circle').textContent = 'Inhale'; document.getElementById('breathe-pts').textContent=''; }
+  document.getElementById('task-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('task-modal').classList.remove('open'); stopBreathe(); }
+
+function completeTask() {
+  if(!currentTask) return;
+  const st = document.getElementById('st-'+currentTask);
+  if(st) { st.classList.remove('cur','lock'); st.classList.add('done'); }
+
+  // Unlock next
+  const keys = Object.keys(taskData);
+  const idx = keys.indexOf(currentTask);
+  if(idx>=0 && idx+1 < keys.length) {
+    const nxt = document.getElementById('st-'+keys[idx+1]);
+    if(nxt && nxt.classList.contains('lock')) { nxt.classList.remove('lock'); nxt.classList.add('cur'); }
+  }
+
+  const earned = 15;
+  shells += earned;
+  tasksCompleted = Math.min(tasksCompleted+1, totalTasks);
+  updateShells();
+  updateProgress();
+  closeModal();
+  toast('✅ Done! +' + earned + ' shells 🐚');
+}
+
+function updateShells() {
+  const v = shells.toLocaleString();
+  document.getElementById('shells-val').textContent = v;
+  document.getElementById('shop-shells').textContent = v;
+  document.getElementById('ps-shells').textContent = v;
+}
+function updateProgress() {
+  const pct = Math.round((tasksCompleted/totalTasks)*100);
+  document.getElementById('task-prog-bar').style.width = pct+'%';
+  document.getElementById('task-prog-txt').textContent = tasksCompleted+' / '+totalTasks;
+}
+
+// Water
+function cupTap(el) {
+  const wasEmpty = !el.classList.contains('full');
+  el.classList.toggle('full');
+  if(wasEmpty) {
+    cupsOfWater++;
+    shells += 3;
+    updateShells();
+    const wp = Math.round((cupsOfWater/8)*100);
+    document.getElementById('water-prog-bar').style.width = Math.min(wp,100)+'%';
+    document.getElementById('water-prog-txt').textContent = cupsOfWater+' / 8 cups';
+    toast('💧 +3 shells! ' + cupsOfWater + '/8 cups today');
+  }
+}
+
+// Breathing
+function startBreathe() {
+  const btn = document.getElementById('breathe-btn');
+  const circle = document.getElementById('breathe-circle');
+  const ptsEl = document.getElementById('breathe-pts');
+  btn.textContent = '⏹ Stop'; btn.onclick = stopBreathe;
+  breatheSeconds = 0;
+  const phases = ['Inhale','Hold','Exhale'];
+  const durations = [4000,7000,8000];
+  let phase = 0;
+  function tick() {
+    circle.textContent = phases[phase];
+    circle.classList.toggle('expand', phase!==2);
+    circle.classList.toggle('contract', phase===2);
+    breatheTimer = setTimeout(() => {
+      phase = (phase+1)%3;
+      if(phase===0) breatheSeconds += 19;
+      const sMin = Math.floor(breatheSeconds/60);
+      if(sMin>0) ptsEl.textContent = '+'+sMin+' shells earned so far';
+      tick();
+    }, durations[phase]);
+  }
+  tick();
+}
+function stopBreathe() {
+  clearTimeout(breatheTimer);
+  if(breatheSeconds>0) {
+    const earned = Math.floor(breatheSeconds/60);
+    if(earned>0){ shells+=earned; updateShells(); toast('🫁 Breathing session: +'+earned+' shells!'); }
+  }
+  breatheSeconds=0;
+  const btn=document.getElementById('breathe-btn');
+  if(btn){ btn.textContent='▶ Start Breathing Exercise'; btn.onclick=startBreathe; }
+}
+
+// Weekly actions
+function weeklyAction(name, icon, msg, pts) {
+  shells += pts; updateShells();
+  toast(icon + ' ' + name + ' complete! +' + pts + ' shells 🐚');
+}
+
+// ---- SHOP ----
+function buy(name, itemId, cost) {
+  const el = document.getElementById(itemId);
+  if(el.classList.contains('owned')) { toast('You already own '+name+'!'); return; }
+  if(shells < cost) { toast('Need '+(cost-shells).toLocaleString()+' more shells! Keep going 💪'); return; }
+  shells -= cost;
+  updateShells();
+  el.classList.add('owned');
+  el.querySelector('.si-cost').innerHTML = '<span style="color:var(--ocean);font-size:10px;font-weight:600">✓ Owned</span>';
+  toast('🎉 '+name+' added to your avatar!');
+}
+
+// ---- KIT ----
+const kitMap = {
+  'Doing great! 💪': "That's absolutely wonderful to hear! 🌟 You're building amazing habits. Every task you complete today is a step closer to your goal. Is there anything specific you'd like to focus on?",
+  'Struggling a bit 😞': "Changing habits can be really challenging at first — and that's completely normal. You're not alone in this. Is there something specific you're finding difficult? I'm here to help you work through it. 💪",
+  "Need a meal idea 🍽️": "I'd love to help! What ingredients do you have on hand? Or would you like me to suggest a heart-healthy meal that fits your plan? I can recommend something quick and delicious! 🥗",
+  "Need an exercise video 🏋️": "Great idea! Based on your preferences I'd suggest a 20-min yoga flow or Jane Fonda's walking workout. Would you like me to open YouTube to a beginner yoga session or a brisk walk-along video? 🧘",
+  "Not sure what to eat 🤔": "Let's figure it out together! What do you have in your fridge? Even a simple meal like scrambled eggs with spinach and whole-grain toast checks all the right AHA boxes. What sounds good?",
+  "I haven't had water today 💧": "It's been a while since you had some water — would you like a glass right now? 😊 Fun fact: drinking water helps carry nutrients to your cells, cushions your joints, and can even help you feel full. Your body will thank you!"
+};
+
+function kitQ(msg) {
+  addBubble(msg, 'user');
+  setTimeout(() => {
+    const resp = kitMap[msg] || "Thanks for sharing! Every conversation helps me understand how to support you better. What else is on your mind today? 😊";
+    addBubble(resp, 'kit');
+  }, 600);
+}
+function kitSend() {
+  const inp = document.getElementById('kit-inp');
+  const msg = inp.value.trim(); if(!msg) return;
+  inp.value = '';
+  kitQ(msg);
+}
+function addBubble(text, who) {
+  const area = document.getElementById('chat-area');
+  const d = document.createElement('div');
+  d.className = 'bubble ' + (who==='kit' ? 'b-kit' : 'b-user');
+  d.textContent = text;
+  area.appendChild(d);
+  area.scrollTop = area.scrollHeight;
+}
+
+// ---- NAVIGATION ----
+const screens = ['path','kit','shop','profile'];
+function goTab(tab) {
+  screens.forEach(s => {
+    const sc = document.getElementById('screen-'+s); if(sc) sc.classList.remove('active');
+  });
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('on', screens[i]===tab));
+}
+
+// ---- SETTINGS ----
+function openSettings() { document.getElementById('settings-modal').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+// ---- TOAST ----
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+// expose for inline onclick
+window.toast = toast;
+
+// Build path immediately (in case user skips onboarding by navigating)
+</script>
+</body>
+</html>
