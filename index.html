@@ -640,14 +640,19 @@
           <button onclick="document.getElementById('photo-input').click()" style="font-size:12px;color:var(--ocean);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600">Change photo</button>
         </div>
 
-        <div class="info-box safe">
+        <div style="background:var(--ocean-light);border:1px solid #9FE1CB;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:14px;font-size:13px;line-height:1.5;color:var(--ocean-dark)">
           <i class="ti ti-shield-lock" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>
-          <strong style="display:inline">Privacy:</strong> Your photo is stored only on this device and never uploaded to any server. No nude, suggestive, or pornographic images are permitted.
+          <strong>Privacy:</strong> Your photo is stored only on this device and never uploaded to any server. No nude, suggestive, or pornographic images are permitted.
         </div>
-        <div class="notif-row">
-          <i class="ti ti-bell"></i>
-          <div class="nr-text"><strong>Allow notifications</strong><span>Hydration reminders, Kit check-ins, daily motivation</span></div>
-          <input type="checkbox" id="notif-check" checked>
+        <div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border-radius:var(--radius-sm);padding:13px;margin-bottom:14px;">
+          <i class="ti ti-bell" style="font-size:24px;color:var(--ocean);flex-shrink:0"></i>
+          <div style="flex:1">
+            <strong style="font-size:14px;color:var(--text);display:block">Allow notifications</strong>
+            <span style="font-size:12px;color:var(--text2)">Hydration reminders, Kit check-ins, daily motivation</span>
+          </div>
+          <label style="cursor:pointer;flex-shrink:0">
+            <input type="checkbox" id="notif-check" checked style="width:20px;height:20px;accent-color:var(--ocean);cursor:pointer">
+          </label>
         </div>
         <button class="btn btn-primary" onclick="launchApp()">Start My Journey 🏖️</button>
         <button class="btn btn-secondary" onclick="launchApp(true)" style="color:var(--text2)">Skip photo — Continue without →</button>
@@ -779,7 +784,7 @@
     </div>
     <div class="profile-scroll">
       <div class="avatar-section">
-        <div class="big-avatar">🏖️</div>
+        <div class="big-avatar" id="big-avatar">🏖️</div>
         <p class="av-name" id="prof-name">Alex</p>
         <p class="av-world">Beach World · <span id="prof-days">4</span> days active</p>
       </div>
@@ -883,6 +888,7 @@
       <div class="modal-handle"></div>
       <p style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:14px">Settings</p>
       <div class="settings-row" onclick="toast('✏️ Edit profile opened')"><i class="ti ti-user-edit"></i><div class="sr-text"><strong>Edit Profile</strong><span>Name, age, weight, goals</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" id="settings-photo-row" onclick="openPhotoFromSettings()"><i class="ti ti-camera" style="font-size:22px;color:var(--ocean);width:26px"></i><div class="sr-text"><strong>Profile Photo</strong><span>Update your avatar photo</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🌍 World selector opened')"><i class="ti ti-world"></i><div class="sr-text"><strong>Change World</strong><span>Beach, City, Forest, Sci-Fi…</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🥗 Allergies &amp; sensitivities editor')"><i class="ti ti-leaf"></i><div class="sr-text"><strong>Allergies &amp; Sensitivities</strong><span>Meal plan exclusions</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🏋️ Activity preferences editor')"><i class="ti ti-run"></i><div class="sr-text"><strong>Activity Preferences</strong><span>Your preferred exercises</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
@@ -938,13 +944,13 @@ function setUnits(mode, el) {
 // Live projection preview as user fills in fields
 function updateProjectionPreview() {
   const weightLbs = getWeightLbs();
-  const heightCm = getHeightCm();
-  const dateVal = document.getElementById('inp-date').value;
-  const preview = document.getElementById('projection-preview');
-  const text = document.getElementById('projection-text');
-  if (!weightLbs || !heightCm || !dateVal) { preview.style.display='none'; return; }
+  const heightCm  = getHeightCm();
+  const dateVal   = document.getElementById('inp-date').value;
+  const preview   = document.getElementById('projection-preview');
+  const text      = document.getElementById('projection-text');
+  if (!weightLbs || !heightCm || !dateVal) { preview.style.display = 'none'; return; }
   const proj = calcProjection(weightLbs, heightCm, dateVal);
-  if (!proj) { preview.style.display='none'; return; }
+  if (!proj) { preview.style.display = 'none'; return; }
   preview.style.display = 'block';
   text.textContent = proj.summary;
 }
@@ -971,53 +977,81 @@ function getHeightCm() {
   }
 }
 
-// Core projection engine — AHA/NIH guidelines:
-// Healthy diet + regular exercise = ~0.5–1.5 lbs/week deficit achievable.
-// BMI used to contextualise current category.
-// We project 1 lb/week as a sustainable centre estimate.
+// BMI category helper
+function bmiCategory(bmi) {
+  if (bmi < 18.5) return 'Underweight';
+  if (bmi < 25)   return 'Healthy Weight';
+  if (bmi < 30)   return 'Overweight';
+  return 'Obese';
+}
+
+// Core projection engine — AHA / NIH guidelines:
+// With healthy diet + regular exercise, a safe sustainable loss is
+// 0.5–2 lbs/week depending on starting BMI. We use 1 lb/wk as the
+// centre estimate for Overweight and scale up slightly for Obese.
+// All internal calculations are in lbs; convert for display only.
 function calcProjection(weightLbs, heightCm, dateStr) {
   if (!weightLbs || !heightCm || !dateStr) return null;
   const today = new Date();
+  today.setHours(0,0,0,0);
   const target = new Date(dateStr);
+  target.setHours(0,0,0,0);
   const days = Math.round((target - today) / 86400000);
   if (days < 7) return null;
   const weeks = days / 7;
 
-  // BMI
+  // Current BMI
   const heightM = heightCm / 100;
   const weightKg = weightLbs * 0.453592;
   const bmi = weightKg / (heightM * heightM);
-  let bmiCat = '';
-  if (bmi < 18.5) bmiCat = 'Underweight';
-  else if (bmi < 25) bmiCat = 'Healthy weight';
-  else if (bmi < 30) bmiCat = 'Overweight';
-  else bmiCat = 'Obese';
+  const bmiCat = bmiCategory(bmi);
 
-  // Realistic loss: healthy-weight people aim to maintain; others lose 0.5–1.5 lbs/wk
-  let lossPerWeek = 0;
-  if (bmi >= 25) lossPerWeek = Math.min(1.5, Math.max(0.5, (bmi - 25) * 0.07));
-  const projectedLoss = Math.round(lossPerWeek * weeks * 10) / 10;
-  const newWeightLbs = Math.max(weightLbs - projectedLoss, weightLbs * 0.85); // cap at 15%
-  const newWeightKg = newWeightLbs * 0.453592;
-  const newBmi = (newWeightKg) / (heightM * heightM);
+  // Projected weekly loss in lbs based on BMI
+  // Underweight/Healthy: aim to maintain composition, not lose weight
+  // Overweight (BMI 25–29.9): ~1 lb/wk
+  // Obese (BMI 30+): ~1.5 lbs/wk (higher caloric deficit achievable)
+  let lossPerWeekLbs = 0;
+  if (bmi >= 30)      lossPerWeekLbs = 1.5;
+  else if (bmi >= 25) lossPerWeekLbs = 1.0;
+  // else 0 — maintain
 
-  const months = Math.round(weeks / 4.3);
-  const timeStr = months >= 1 ? months + ' month' + (months>1?'s':'') : Math.round(weeks) + ' weeks';
+  // Total projected loss, capped at a realistic 20% of body weight
+  const maxLossLbs = weightLbs * 0.20;
+  const projectedLossLbs = Math.min(
+    Math.round(lossPerWeekLbs * weeks * 10) / 10,
+    maxLossLbs
+  );
+
+  // New weight and BMI
+  const newWeightLbs = weightLbs - projectedLossLbs;
+  const newWeightKg  = newWeightLbs * 0.453592;
+  const newBmi = newWeightKg / (heightM * heightM);
+  const newBmiCat = bmiCategory(newBmi);
+
+  // Human-readable time string
+  const months = Math.round(weeks / 4.345);
+  const timeStr = months >= 1
+    ? months + ' month' + (months > 1 ? 's' : '')
+    : Math.round(weeks) + ' week' + (Math.round(weeks) > 1 ? 's' : '');
+
+  // Display values in user's chosen unit
+  const lossDisplay = userUnits === 'imperial'
+    ? projectedLossLbs.toFixed(1) + ' lbs'
+    : (projectedLossLbs * 0.453592).toFixed(1) + ' kg';
+  const newWtDisplay = userUnits === 'imperial'
+    ? newWeightLbs.toFixed(1) + ' lbs'
+    : newWeightKg.toFixed(1) + ' kg';
 
   let summary = '';
   if (bmi < 25) {
-    summary = `Your BMI is ${bmi.toFixed(1)} (${bmiCat}). With healthy eating and regular exercise over ${timeStr}, you're projected to maintain and tone your body composition.`;
+    summary = `Your current BMI is ${bmi.toFixed(1)} (${bmiCat}). With healthy eating and regular exercise over ${timeStr}, you're on track to maintain and improve your body composition — building strength and cardiovascular fitness.`;
+  } else if (projectedLossLbs > 0) {
+    summary = `Your current BMI is ${bmi.toFixed(1)} (${bmiCat}). With a healthy diet and regular exercise over ${timeStr}, you could lose approximately ${lossDisplay}, reaching ~${newWtDisplay} and a BMI of ${newBmi.toFixed(1)} (${newBmiCat}).`;
   } else {
-    const lossDisplay = userUnits==='imperial'
-      ? projectedLoss.toFixed(1) + ' lbs'
-      : (projectedLoss * 0.453592).toFixed(1) + ' kg';
-    const newWtDisplay = userUnits==='imperial'
-      ? newWeightLbs.toFixed(1) + ' lbs'
-      : newWeightKg.toFixed(1) + ' kg';
-    summary = `Your BMI is ${bmi.toFixed(1)} (${bmiCat}). With a healthy diet and regular exercise over ${timeStr}, you could lose ~${lossDisplay}, reaching ~${newWtDisplay} and a BMI of ${newBmi.toFixed(1)}.`;
+    summary = `Your current BMI is ${bmi.toFixed(1)} (${bmiCat}). Enter a target date further in the future to see your projected transformation.`;
   }
 
-  return { summary, projectedLoss, newWeightLbs, bmi, newBmi, bmiCat, weeks };
+  return { summary, projectedLossLbs, newWeightLbs, newWeightKg, bmi, newBmi, bmiCat, newBmiCat, weeks };
 }
 
 function ob1Continue() {
@@ -1033,17 +1067,17 @@ function ob1Continue() {
   userHeightCm = heightCm;
   userTargetDate = dateVal;
 
-  // Store projection and update profile
+  // Store projection and update profile screen
   const proj = calcProjection(weightLbs, heightCm, dateVal);
   if (proj) {
-    const lossDisplay = userUnits==='imperial'
-      ? proj.projectedLoss.toFixed(1) + ' lbs'
-      : (proj.projectedLoss * 0.453592).toFixed(1) + ' kg';
-    document.getElementById('proj-val').textContent = proj.projectedLoss > 0 ? '−' + lossDisplay : 'Maintain';
-    document.getElementById('proj-bar').style.width = Math.min(Math.round((proj.projectedLoss / (userWeightLbs * 0.15)) * 100), 100) + '%';
+    const lossDisplay = userUnits === 'imperial'
+      ? proj.projectedLossLbs.toFixed(1) + ' lbs'
+      : (proj.projectedLossLbs * 0.453592).toFixed(1) + ' kg';
+    const targetLabel = new Date(dateVal + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    document.getElementById('proj-val').textContent = proj.projectedLossLbs > 0 ? '−' + lossDisplay : 'Maintain';
+    document.getElementById('proj-bar').style.width = Math.min(Math.round((proj.projectedLossLbs / (userWeightLbs * 0.20)) * 100), 100) + '%';
     document.getElementById('proj-detail').textContent = proj.summary;
-    document.getElementById('proj-label').textContent = 'Projected by ' + new Date(dateVal).toLocaleDateString('en-US',{month:'short',year:'numeric'});
-    document.getElementById('ps-lost').textContent = '−3';
+    document.getElementById('proj-label').textContent = 'Projected by ' + targetLabel;
   }
 
   obGo(2);
@@ -1075,28 +1109,55 @@ function handlePhotoUpload(input) {
   reader.readAsDataURL(file);
 }
 
-function updateProfileAvatar() {
-  if (!userPhotoURL) return;
-  const av = document.getElementById('big-avatar');
-  av.innerHTML = `<img src="${userPhotoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="Your photo">`;
-}
+let photoSkipped = false;
 
 function launchApp(skipped) {
   const n = document.getElementById('inp-name').value.trim();
   userName = n || 'Friend';
-  document.getElementById('prof-name').textContent = userName;
-  if (skipped) {
-    document.getElementById('big-avatar').textContent = '🏖️';
-  } else if (userPhotoURL) {
-    updateProfileAvatar();
+  photoSkipped = !!skipped;
+
+  // Safe avatar update — element now has id="big-avatar"
+  const av = document.getElementById('big-avatar');
+  if (av) {
+    if (userPhotoURL) {
+      av.innerHTML = `<img src="${userPhotoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="Your photo">`;
+    } else {
+      av.textContent = '🏖️';
+    }
   }
+
+  const nameEl = document.getElementById('prof-name');
+  if (nameEl) nameEl.textContent = userName;
+
+  // Disable avatar-shop photo features if no photo provided
+  if (photoSkipped) {
+    const photoSettingsRow = document.getElementById('settings-photo-row');
+    if (photoSettingsRow) {
+      photoSettingsRow.innerHTML = `<i class="ti ti-camera" style="font-size:22px;color:var(--text3);width:26px"></i><div class="sr-text"><strong style="color:var(--text3)">Upload Photo</strong><span>Add a photo to enable avatar features</span></div><i class="ti ti-chevron-right sr-arrow"></i>`;
+      photoSettingsRow.onclick = () => openPhotoFromSettings();
+    }
+  }
+
   document.getElementById('screen-onboard').classList.remove('active');
   document.getElementById('screen-path').classList.add('active');
   buildPath();
+
   const msg = skipped
-    ? '🎉 Welcome to Beach World, ' + userName + '! You can add a photo later in Settings.'
+    ? '🎉 Welcome, ' + userName + '! Add a photo in Settings anytime to enable avatar features.'
     : '🎉 Welcome to Beach World, ' + userName + '!';
   toast(msg);
+}
+
+function updateProfileAvatar() {
+  const av = document.getElementById('big-avatar');
+  if (!av || !userPhotoURL) return;
+  av.innerHTML = `<img src="${userPhotoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="Your photo">`;
+}
+
+function openPhotoFromSettings() {
+  closeSettings();
+  const fi = document.getElementById('photo-input');
+  if (fi) fi.click();
 }
 
 // ---- CLOCK ----
