@@ -514,28 +514,43 @@
           <input type="text" id="inp-name" placeholder="Name">
         </div>
         <div class="two-col">
-          <div class="field"><label>Age</label><input type="number" id="inp-age" placeholder="e.g. 34"></div>
+          <div class="field"><label>Age</label><input type="number" id="inp-age" placeholder="e.g. 34" min="13" max="110"></div>
           <div class="field"><label>Gender</label>
             <select id="inp-gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select>
           </div>
         </div>
         <div class="field">
           <label>Units of measure</label>
-          <div class="chips">
-            <button class="chip on" onclick="solo(this)">lbs (default)</button>
-            <button class="chip" onclick="solo(this)">kg</button>
+          <div class="chips" id="units-chips">
+            <button class="chip on" onclick="setUnits('imperial',this)">Imperial (lbs / ft·in)</button>
+            <button class="chip" onclick="setUnits('metric',this)">Metric (kg / cm)</button>
           </div>
         </div>
-        <div class="two-col">
-          <div class="field"><label>Current weight</label><input type="number" id="inp-cw" placeholder="e.g. 185"></div>
-          <div class="field"><label>Goal weight</label><input type="number" id="inp-gw" placeholder="e.g. 155"></div>
+        <!-- Imperial height/weight -->
+        <div id="imperial-fields">
+          <div class="field"><label>Current weight (lbs)</label><input type="number" id="inp-cw-lbs" placeholder="e.g. 185" min="50" max="700"></div>
+          <div class="field"><label>Height</label>
+            <div class="two-col">
+              <input type="number" id="inp-ft" placeholder="Feet (e.g. 5)" min="3" max="8" style="padding:11px 13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--bg);font-family:inherit;outline:none;width:100%">
+              <input type="number" id="inp-in" placeholder="Inches (e.g. 6)" min="0" max="11" style="padding:11px 13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--bg);font-family:inherit;outline:none;width:100%">
+            </div>
+          </div>
         </div>
-        <div class="field"><label>Target date</label><input type="date" id="inp-date"></div>
+        <!-- Metric height/weight -->
+        <div id="metric-fields" style="display:none">
+          <div class="field"><label>Current weight (kg)</label><input type="number" id="inp-cw-kg" placeholder="e.g. 84" min="20" max="320"></div>
+          <div class="field"><label>Height (cm)</label><input type="number" id="inp-cm" placeholder="e.g. 170" min="100" max="250"></div>
+        </div>
+        <div class="field"><label>Target date — when do you want to start seeing results?</label><input type="date" id="inp-date"></div>
+        <div class="info-box warn" id="projection-preview" style="display:none">
+          <i class="ti ti-trending-down" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>
+          <span id="projection-text"></span>
+        </div>
         <div class="info-box warn">
           <i class="ti ti-info-circle" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>
-          Based on AHA guidelines, we'll set a healthy pace. Fad diets are not recommended — we'll show expected healthy progression.
+          We project realistic results based on your height, weight, and timeline — using AHA and NIH guidelines. No goal weight is needed; we show what healthy diet + regular exercise can do for your body.
         </div>
-        <button class="btn btn-primary" onclick="obGo(2)">Continue →</button>
+        <button class="btn btn-primary" onclick="ob1Continue()">Continue →</button>
       </div>
 
       <!-- Step 2 -->
@@ -606,22 +621,36 @@
       <!-- Step 4 -->
       <div class="step" id="ob4">
         <p class="step-title">Your Progression Avatar</p>
-        <p class="step-sub">Upload a fully-dressed photo. We'll create an AI progression image and a cartoon avatar stored only on your device.</p>
-        <div class="upload-zone" onclick="toast('📸 Camera / gallery access would open here')">
-          <i class="ti ti-camera up-icon"></i>
-          <p>Tap to upload your photo</p>
-          <small>Fully-dressed images only · Stored locally only</small>
+        <p class="step-sub">Upload a fully-dressed photo to create your personal avatar and track your visual transformation over time.</p>
+
+        <!-- Hidden real file input -->
+        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(this)">
+
+        <!-- Upload zone — clicks the real input -->
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('photo-input').click()">
+          <i class="ti ti-camera up-icon" id="upload-icon"></i>
+          <p id="upload-label">Tap to select a photo</p>
+          <small id="upload-sub">Choose from your gallery or take a new photo · Fully-dressed images only</small>
         </div>
+
+        <!-- Photo preview (hidden until photo selected) -->
+        <div id="photo-preview-wrap" style="display:none;margin-bottom:14px;text-align:center">
+          <img id="photo-preview" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--ocean);margin-bottom:8px" alt="Your photo">
+          <br>
+          <button onclick="document.getElementById('photo-input').click()" style="font-size:12px;color:var(--ocean);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600">Change photo</button>
+        </div>
+
         <div class="info-box safe">
           <i class="ti ti-shield-lock" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>
-          <strong style="display:inline">Privacy:</strong> Photos never leave your device. Only your avatar is used in-app. No nude, suggestive, or pornographic images are permitted.
+          <strong style="display:inline">Privacy:</strong> Your photo is stored only on this device and never uploaded to any server. No nude, suggestive, or pornographic images are permitted.
         </div>
         <div class="notif-row">
           <i class="ti ti-bell"></i>
           <div class="nr-text"><strong>Allow notifications</strong><span>Hydration reminders, Kit check-ins, daily motivation</span></div>
-          <input type="checkbox" checked>
+          <input type="checkbox" id="notif-check" checked>
         </div>
         <button class="btn btn-primary" onclick="launchApp()">Start My Journey 🏖️</button>
+        <button class="btn btn-secondary" onclick="launchApp(true)" style="color:var(--text2)">Skip photo — Continue without →</button>
         <button class="btn btn-secondary" onclick="obGo(3)">← Back</button>
       </div>
 
@@ -768,9 +797,10 @@
         <div class="prog-lr"><span>Hydration</span><span id="water-prog-txt">0 / 8 cups</span></div>
         <div class="pbar"><div class="pfill" id="water-prog-bar" style="width:0%"></div></div>
       </div>
-      <div class="prog-wrap">
-        <div class="prog-lr"><span>Weight goal</span><span>3 lbs / 30 lbs</span></div>
-        <div class="pbar"><div class="pfill gold" style="width:10%"></div></div>
+      <div class="prog-wrap" id="proj-panel">
+        <div class="prog-lr"><span id="proj-label">Projected change by target date</span><span id="proj-val">—</span></div>
+        <div class="pbar"><div class="pfill gold" id="proj-bar" style="width:0%"></div></div>
+        <p id="proj-detail" style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.4"></p>
       </div>
       <p class="sec-h" style="margin-top:4px">Shell Earning Guide 🐚</p>
       <div class="pts-table">
@@ -876,6 +906,11 @@ let breatheTimer = null;
 let breatheSeconds = 0;
 let currentTask = null;
 let userName = 'Alex';
+let userUnits = 'imperial';
+let userWeightLbs = 0;
+let userHeightCm = 0;
+let userTargetDate = null;
+let userPhotoURL = null;
 
 // ---- ONBOARDING ----
 let obStep = 1;
@@ -890,14 +925,178 @@ function tog(el) { el.classList.toggle('on'); }
 function solo(el) { el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); }
 function pickWorld(el) { document.querySelectorAll('.world-card').forEach(c=>c.classList.remove('on')); el.classList.add('on'); }
 
-function launchApp() {
+// Units toggle
+function setUnits(mode, el) {
+  userUnits = mode;
+  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('imperial-fields').style.display = mode==='imperial' ? 'block' : 'none';
+  document.getElementById('metric-fields').style.display = mode==='metric' ? 'block' : 'none';
+  updateProjectionPreview();
+}
+
+// Live projection preview as user fills in fields
+function updateProjectionPreview() {
+  const weightLbs = getWeightLbs();
+  const heightCm = getHeightCm();
+  const dateVal = document.getElementById('inp-date').value;
+  const preview = document.getElementById('projection-preview');
+  const text = document.getElementById('projection-text');
+  if (!weightLbs || !heightCm || !dateVal) { preview.style.display='none'; return; }
+  const proj = calcProjection(weightLbs, heightCm, dateVal);
+  if (!proj) { preview.style.display='none'; return; }
+  preview.style.display = 'block';
+  text.textContent = proj.summary;
+}
+
+// Get weight in lbs from whichever fields are visible
+function getWeightLbs() {
+  if (userUnits === 'imperial') {
+    return parseFloat(document.getElementById('inp-cw-lbs').value) || 0;
+  } else {
+    const kg = parseFloat(document.getElementById('inp-cw-kg').value) || 0;
+    return kg * 2.20462;
+  }
+}
+
+// Get height in cm from whichever fields are visible
+function getHeightCm() {
+  if (userUnits === 'imperial') {
+    const ft = parseFloat(document.getElementById('inp-ft').value) || 0;
+    const inches = parseFloat(document.getElementById('inp-in').value) || 0;
+    if (!ft && !inches) return 0;
+    return (ft * 12 + inches) * 2.54;
+  } else {
+    return parseFloat(document.getElementById('inp-cm').value) || 0;
+  }
+}
+
+// Core projection engine — AHA/NIH guidelines:
+// Healthy diet + regular exercise = ~0.5–1.5 lbs/week deficit achievable.
+// BMI used to contextualise current category.
+// We project 1 lb/week as a sustainable centre estimate.
+function calcProjection(weightLbs, heightCm, dateStr) {
+  if (!weightLbs || !heightCm || !dateStr) return null;
+  const today = new Date();
+  const target = new Date(dateStr);
+  const days = Math.round((target - today) / 86400000);
+  if (days < 7) return null;
+  const weeks = days / 7;
+
+  // BMI
+  const heightM = heightCm / 100;
+  const weightKg = weightLbs * 0.453592;
+  const bmi = weightKg / (heightM * heightM);
+  let bmiCat = '';
+  if (bmi < 18.5) bmiCat = 'Underweight';
+  else if (bmi < 25) bmiCat = 'Healthy weight';
+  else if (bmi < 30) bmiCat = 'Overweight';
+  else bmiCat = 'Obese';
+
+  // Realistic loss: healthy-weight people aim to maintain; others lose 0.5–1.5 lbs/wk
+  let lossPerWeek = 0;
+  if (bmi >= 25) lossPerWeek = Math.min(1.5, Math.max(0.5, (bmi - 25) * 0.07));
+  const projectedLoss = Math.round(lossPerWeek * weeks * 10) / 10;
+  const newWeightLbs = Math.max(weightLbs - projectedLoss, weightLbs * 0.85); // cap at 15%
+  const newWeightKg = newWeightLbs * 0.453592;
+  const newBmi = (newWeightKg) / (heightM * heightM);
+
+  const months = Math.round(weeks / 4.3);
+  const timeStr = months >= 1 ? months + ' month' + (months>1?'s':'') : Math.round(weeks) + ' weeks';
+
+  let summary = '';
+  if (bmi < 25) {
+    summary = `Your BMI is ${bmi.toFixed(1)} (${bmiCat}). With healthy eating and regular exercise over ${timeStr}, you're projected to maintain and tone your body composition.`;
+  } else {
+    const lossDisplay = userUnits==='imperial'
+      ? projectedLoss.toFixed(1) + ' lbs'
+      : (projectedLoss * 0.453592).toFixed(1) + ' kg';
+    const newWtDisplay = userUnits==='imperial'
+      ? newWeightLbs.toFixed(1) + ' lbs'
+      : newWeightKg.toFixed(1) + ' kg';
+    summary = `Your BMI is ${bmi.toFixed(1)} (${bmiCat}). With a healthy diet and regular exercise over ${timeStr}, you could lose ~${lossDisplay}, reaching ~${newWtDisplay} and a BMI of ${newBmi.toFixed(1)}.`;
+  }
+
+  return { summary, projectedLoss, newWeightLbs, bmi, newBmi, bmiCat, weeks };
+}
+
+function ob1Continue() {
+  const weightLbs = getWeightLbs();
+  const heightCm = getHeightCm();
+  const dateVal = document.getElementById('inp-date').value;
+
+  if (!weightLbs) { toast('Please enter your current weight'); return; }
+  if (!heightCm) { toast('Please enter your height'); return; }
+  if (!dateVal) { toast('Please choose a target date'); return; }
+
+  userWeightLbs = weightLbs;
+  userHeightCm = heightCm;
+  userTargetDate = dateVal;
+
+  // Store projection and update profile
+  const proj = calcProjection(weightLbs, heightCm, dateVal);
+  if (proj) {
+    const lossDisplay = userUnits==='imperial'
+      ? proj.projectedLoss.toFixed(1) + ' lbs'
+      : (proj.projectedLoss * 0.453592).toFixed(1) + ' kg';
+    document.getElementById('proj-val').textContent = proj.projectedLoss > 0 ? '−' + lossDisplay : 'Maintain';
+    document.getElementById('proj-bar').style.width = Math.min(Math.round((proj.projectedLoss / (userWeightLbs * 0.15)) * 100), 100) + '%';
+    document.getElementById('proj-detail').textContent = proj.summary;
+    document.getElementById('proj-label').textContent = 'Projected by ' + new Date(dateVal).toLocaleDateString('en-US',{month:'short',year:'numeric'});
+    document.getElementById('ps-lost').textContent = '−3';
+  }
+
+  obGo(2);
+}
+
+// ---- PHOTO UPLOAD ----
+function handlePhotoUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('Please select an image file'); return; }
+  if (file.size > 20 * 1024 * 1024) { toast('Photo is too large — please choose one under 20MB'); return; }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    userPhotoURL = e.target.result;
+    // Show preview
+    document.getElementById('photo-preview').src = userPhotoURL;
+    document.getElementById('photo-preview-wrap').style.display = 'block';
+    // Update upload zone
+    document.getElementById('upload-zone').style.borderColor = 'var(--ocean)';
+    document.getElementById('upload-zone').style.background = 'var(--ocean-light)';
+    document.getElementById('upload-icon').style.display = 'none';
+    document.getElementById('upload-label').textContent = '✓ Photo selected';
+    document.getElementById('upload-sub').textContent = 'Tap to change · Stored on this device only';
+    // Update profile avatar too
+    updateProfileAvatar();
+    toast('📸 Photo saved to your profile!');
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateProfileAvatar() {
+  if (!userPhotoURL) return;
+  const av = document.getElementById('big-avatar');
+  av.innerHTML = `<img src="${userPhotoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="Your photo">`;
+}
+
+function launchApp(skipped) {
   const n = document.getElementById('inp-name').value.trim();
   userName = n || 'Friend';
   document.getElementById('prof-name').textContent = userName;
+  if (skipped) {
+    document.getElementById('big-avatar').textContent = '🏖️';
+  } else if (userPhotoURL) {
+    updateProfileAvatar();
+  }
   document.getElementById('screen-onboard').classList.remove('active');
   document.getElementById('screen-path').classList.add('active');
   buildPath();
-  toast('🎉 Welcome to Beach World, ' + userName + '!');
+  const msg = skipped
+    ? '🎉 Welcome to Beach World, ' + userName + '! You can add a photo later in Settings.'
+    : '🎉 Welcome to Beach World, ' + userName + '!';
+  toast(msg);
 }
 
 // ---- CLOCK ----
@@ -908,9 +1107,18 @@ function updateClock() {
 }
 updateClock(); setInterval(updateClock, 30000);
 
-// Set default target date to 1 year from today
+// Set default target date to 1 year from today and wire up live preview
 const td = document.getElementById('inp-date');
-if(td){ const d=new Date(); d.setFullYear(d.getFullYear()+1); td.value=d.toISOString().split('T')[0]; }
+if(td){
+  const d=new Date(); d.setFullYear(d.getFullYear()+1);
+  td.value=d.toISOString().split('T')[0];
+  td.addEventListener('change', updateProjectionPreview);
+}
+// Wire up live preview on weight/height changes
+['inp-cw-lbs','inp-cw-kg','inp-ft','inp-in','inp-cm'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateProjectionPreview);
+});
 
 // ---- PATH ----
 const STONES = [
