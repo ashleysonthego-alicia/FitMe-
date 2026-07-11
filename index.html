@@ -516,7 +516,7 @@
         <div class="two-col">
           <div class="field"><label>Age</label><input type="number" id="inp-age" placeholder="e.g. 34" min="13" max="110"></div>
           <div class="field"><label>Gender</label>
-            <select id="inp-gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select>
+            <select id="inp-gender"><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select>
           </div>
         </div>
         <div class="field">
@@ -1170,15 +1170,21 @@ updateClock(); setInterval(updateClock, 30000);
 
 // Set default target date to 1 year from today and wire up live preview
 const td = document.getElementById('inp-date');
-if(td){
-  const d=new Date(); d.setFullYear(d.getFullYear()+1);
-  td.value=d.toISOString().split('T')[0];
+if (td) {
+  const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+  td.value = d.toISOString().split('T')[0];
+  // Both 'change' and 'input' needed: desktop fires 'change', mobile Safari fires 'input'
   td.addEventListener('change', updateProjectionPreview);
+  td.addEventListener('input',  updateProjectionPreview);
 }
-// Wire up live preview on weight/height changes
-['inp-cw-lbs','inp-cw-kg','inp-ft','inp-in','inp-cm'].forEach(id => {
+// Wire up live projection preview on every weight/height field
+// Uses both 'input' (typing) and 'change' (blur/spin) for full cross-browser coverage
+['inp-cw-lbs', 'inp-cw-kg', 'inp-ft', 'inp-in', 'inp-cm'].forEach(id => {
   const el = document.getElementById(id);
-  if (el) el.addEventListener('input', updateProjectionPreview);
+  if (el) {
+    el.addEventListener('input',  updateProjectionPreview);
+    el.addEventListener('change', updateProjectionPreview);
+  }
 });
 
 // ---- PATH ----
@@ -1203,25 +1209,58 @@ const STONES = [
 
 function buildPath() {
   const area = document.getElementById('path-area');
-  area.innerHTML = '<div class="day-sep">Today — May 8</div>';
-  STONES.forEach((s,i) => {
+  // Clear and use only DOM methods — never innerHTML+= after appendChild (wipes nodes)
+  area.innerHTML = '';
+
+  // Real date labels
+  const today = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const fmtDay = d => d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+
+  function addSep(text, extra) {
+    const s = document.createElement('div');
+    s.className = extra ? 'week-sep' : 'day-sep';
+    if (extra) s.style.marginTop = '20px';
+    s.textContent = text;
+    area.appendChild(s);
+  }
+
+  addSep('Today — ' + fmtDay(today));
+
+  STONES.forEach((s, i) => {
     const row = document.createElement('div');
-    row.className = 'stone-row ' + (i%2===0 ? 'offset-r' : 'offset-l');
-    row.innerHTML = `<div class="stone ${s.state}" id="st-${s.id}" onclick="openTask('${s.id}')">
-      <span class="sicon">${s.icon}</span>
-      <span class="slabel">${s.label}</span>
-      <span class="check-ring">✓</span>
-    </div>`;
+    row.className = 'stone-row ' + (i % 2 === 0 ? 'offset-r' : 'offset-l');
+
+    const stone = document.createElement('div');
+    stone.className = 'stone ' + s.state;
+    stone.id = 'st-' + s.id;
+    // Locked stones: show tooltip, don't open modal
+    if (s.state === 'lock') {
+      stone.title = 'Complete the previous step to unlock';
+      stone.style.cursor = 'default';
+    } else {
+      stone.addEventListener('click', () => openTask(s.id));
+    }
+    stone.innerHTML = `<span class="sicon">${s.icon}</span><span class="slabel">${s.label}</span><span class="check-ring">✓</span>`;
+    row.appendChild(stone);
     area.appendChild(row);
   });
-  area.innerHTML += '<div class="week-sep">— End of Day 4 · Week 1 of 52 —</div>';
 
-  // Day 5 preview (all locked)
-  area.innerHTML += '<div class="day-sep" style="margin-top:20px">Day 5 — May 9</div>';
-  ['📋','🤸','🍽️','🚫','💧','🏋️','🍽️','🚫','🍎','🍽️','🚶'].forEach((ic,i) => {
+  const weekSep = document.createElement('div');
+  weekSep.className = 'week-sep';
+  weekSep.textContent = '— End of Day 1 · Week 1 of 52 —';
+  area.appendChild(weekSep);
+
+  // Day 2 preview (all locked, no onclick)
+  addSep('Tomorrow — ' + fmtDay(tomorrow), true);
+  ['📋','🤸','🍽️','🚫','💧','🏋️','🍽️','🚫','🍎','🍽️','🚶'].forEach((ic, i) => {
     const row = document.createElement('div');
-    row.className = 'stone-row ' + (i%2===0?'offset-r':'offset-l');
-    row.innerHTML = `<div class="stone lock"><span class="sicon">${ic}</span><span class="slabel" style="font-size:8px">Tomorrow</span></div>`;
+    row.className = 'stone-row ' + (i % 2 === 0 ? 'offset-r' : 'offset-l');
+    const stone = document.createElement('div');
+    stone.className = 'stone lock';
+    stone.style.cursor = 'default';
+    stone.innerHTML = `<span class="sicon">${ic}</span><span class="slabel" style="font-size:8px">Tomorrow</span>`;
+    row.appendChild(stone);
     area.appendChild(row);
   });
 }
@@ -1263,26 +1302,47 @@ function openTask(id) {
 }
 function closeModal() { document.getElementById('task-modal').classList.remove('open'); stopBreathe(); }
 
-function completeTask() {
-  if(!currentTask) return;
-  const st = document.getElementById('st-'+currentTask);
-  if(st) { st.classList.remove('cur','lock'); st.classList.add('done'); }
+// Points per task type (matches FRD shell earning guide)
+const taskPts = {
+  'meal-plan': 20, 'stretch': 5, 'meal': 15, 'avoid': 10,
+  'water': 3, 'breathe': 1, 'exercise': 20, 'walk': 10, 'none': 10
+};
 
-  // Unlock next
-  const keys = Object.keys(taskData);
-  const idx = keys.indexOf(currentTask);
-  if(idx>=0 && idx+1 < keys.length) {
-    const nxt = document.getElementById('st-'+keys[idx+1]);
-    if(nxt && nxt.classList.contains('lock')) { nxt.classList.remove('lock'); nxt.classList.add('cur'); }
+function completeTask() {
+  if (!currentTask) return;
+  const t = taskData[currentTask];
+  const st = document.getElementById('st-' + currentTask);
+  if (st) {
+    st.classList.remove('cur', 'lock');
+    st.classList.add('done');
+    // Re-enable click on now-completed stone
+    st.style.cursor = 'pointer';
   }
 
-  const earned = 15;
+  // Unlock the next locked stone and make it current
+  const keys = Object.keys(taskData);
+  const idx = keys.indexOf(currentTask);
+  if (idx >= 0 && idx + 1 < keys.length) {
+    const nxtId = keys[idx + 1];
+    const nxt = document.getElementById('st-' + nxtId);
+    if (nxt && nxt.classList.contains('lock')) {
+      nxt.classList.remove('lock');
+      nxt.classList.add('cur');
+      nxt.style.cursor = 'pointer';
+      // Add click listener to newly unlocked stone
+      nxt.addEventListener('click', () => openTask(nxtId));
+    }
+  }
+
+  // Award task-specific shells
+  const type = t ? t.type : 'none';
+  const earned = taskPts[type] || taskPts['none'];
   shells += earned;
-  tasksCompleted = Math.min(tasksCompleted+1, totalTasks);
+  tasksCompleted = Math.min(tasksCompleted + 1, totalTasks);
   updateShells();
   updateProgress();
   closeModal();
-  toast('✅ Done! +' + earned + ' shells 🐚');
+  toast('✅ ' + (t ? t.name : 'Task') + ' done! +' + earned + ' shells 🐚');
 }
 
 function updateShells() {
