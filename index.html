@@ -543,12 +543,10 @@
         </div>
         <div class="field"><label>Target date — when do you want to start seeing results?</label><input type="date" id="inp-date"></div>
         <div class="info-box warn" id="projection-preview" style="display:none">
-          <i class="ti ti-trending-down" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>
-          <span id="projection-text"></span>
+          📉 <span id="projection-text"></span>
         </div>
         <div class="info-box warn">
-          <i class="ti ti-info-circle" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>
-          We project realistic results based on your height, weight, and timeline — using AHA and NIH guidelines. No goal weight is needed; we show what healthy diet + regular exercise can do for your body.
+          ℹ️ We project realistic results based on your height, weight, and timeline — using AHA and NIH guidelines. No goal weight is needed; we show what healthy diet + regular exercise can do for your body.
         </div>
         <button class="btn btn-primary" onclick="ob1Continue()">Continue →</button>
       </div>
@@ -623,29 +621,39 @@
         <p class="step-title">Your Progression Avatar</p>
         <p class="step-sub">Upload a fully-dressed photo to create your personal avatar and track your visual transformation over time.</p>
 
-        <!-- Hidden real file input -->
-        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(this)">
+        <!-- Two separate inputs: one for gallery (no capture), one for camera -->
+        <input type="file" id="photo-input-gallery" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
+        <input type="file" id="photo-input-camera" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(this)">
 
-        <!-- Upload zone — clicks the real input -->
-        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('photo-input').click()">
-          <i class="ti ti-camera up-icon" id="upload-icon"></i>
-          <p id="upload-label">Tap to select a photo</p>
-          <small id="upload-sub">Choose from your gallery or take a new photo · Fully-dressed images only</small>
+        <!-- Photo choice buttons -->
+        <div id="photo-choice" style="display:flex;gap:10px;margin-bottom:14px;">
+          <button onclick="document.getElementById('photo-input-gallery').click()" style="flex:1;padding:18px 10px;border:1.5px dashed var(--border2);border-radius:var(--radius);background:var(--bg2);cursor:pointer;font-family:inherit;text-align:center;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--ocean)'" onmouseout="this.style.borderColor='var(--border2)'">
+            <span style="font-size:28px;display:block;margin-bottom:6px">🖼️</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text);display:block">Choose from Gallery</span>
+            <span style="font-size:11px;color:var(--text2);display:block;margin-top:2px">Select an existing photo</span>
+          </button>
+          <button onclick="document.getElementById('photo-input-camera').click()" style="flex:1;padding:18px 10px;border:1.5px dashed var(--border2);border-radius:var(--radius);background:var(--bg2);cursor:pointer;font-family:inherit;text-align:center;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--ocean)'" onmouseout="this.style.borderColor='var(--border2)'">
+            <span style="font-size:28px;display:block;margin-bottom:6px">📷</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text);display:block">Take a New Photo</span>
+            <span style="font-size:11px;color:var(--text2);display:block;margin-top:2px">Open your camera</span>
+          </button>
         </div>
 
         <!-- Photo preview (hidden until photo selected) -->
         <div id="photo-preview-wrap" style="display:none;margin-bottom:14px;text-align:center">
           <img id="photo-preview" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--ocean);margin-bottom:8px" alt="Your photo">
-          <br>
-          <button onclick="document.getElementById('photo-input').click()" style="font-size:12px;color:var(--ocean);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600">Change photo</button>
+          <p style="font-size:13px;color:var(--ocean);font-weight:600;margin-bottom:6px">✓ Photo selected</p>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button onclick="document.getElementById('photo-input-gallery').click()" style="font-size:12px;color:var(--ocean);background:none;border:1px solid var(--ocean);border-radius:20px;padding:4px 12px;cursor:pointer;font-family:inherit;font-weight:600">🖼️ Change (Gallery)</button>
+            <button onclick="document.getElementById('photo-input-camera').click()" style="font-size:12px;color:var(--ocean);background:none;border:1px solid var(--ocean);border-radius:20px;padding:4px 12px;cursor:pointer;font-family:inherit;font-weight:600">📷 Retake</button>
+          </div>
         </div>
 
         <div style="background:var(--ocean-light);border:1px solid #9FE1CB;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:14px;font-size:13px;line-height:1.5;color:var(--ocean-dark)">
-          <i class="ti ti-shield-lock" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>
-          <strong>Privacy:</strong> Your photo is stored only on this device and never uploaded to any server. No nude, suggestive, or pornographic images are permitted.
+          🔒 <strong>Privacy:</strong> Your photo is stored only on this device and never uploaded to any server. No nude, suggestive, or pornographic images are permitted.
         </div>
         <div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border-radius:var(--radius-sm);padding:13px;margin-bottom:14px;">
-          <i class="ti ti-bell" style="font-size:24px;color:var(--ocean);flex-shrink:0"></i>
+          <span style="font-size:22px;flex-shrink:0">🔔</span>
           <div style="flex:1">
             <strong style="font-size:14px;color:var(--text);display:block">Allow notifications</strong>
             <span style="font-size:12px;color:var(--text2)">Hydration reminders, Kit check-ins, daily motivation</span>
@@ -685,12 +693,15 @@
       <!-- Stones injected by JS -->
     </div>
 
-    <div class="path-bottom">
-      <button class="path-action" onclick="weeklyAction('Stock Up','🛒','Your personalized shopping list for this week\'s meal plan has been generated.',20)">
-        <i class="ti ti-shopping-cart"></i> Stock Up
+    <div class="path-bottom" style="display:flex;gap:8px;padding:10px 16px;background:var(--bg);border-top:1px solid var(--border);flex-shrink:0;overflow-x:auto;">
+      <button class="path-action" style="min-width:90px" onclick="weeklyAction('Meal Planning','🗓️','Your personalized 7-day meal plan has been generated based on your dietary preferences and AHA guidelines.',20)">
+        <span style="font-size:16px">🗓️</span> Meal Plan
       </button>
-      <button class="path-action" onclick="weeklyAction('Meal Prep','👨‍🍳','Your weekly meal prep guide is ready — batch cook grains, chop veggies, and boil eggs in advance!',20)">
-        <i class="ti ti-tools-kitchen-2"></i> Meal Prep
+      <button class="path-action" style="min-width:90px" onclick="weeklyAction('Stock Up','🛒','Your personalized shopping list for this week\'s meal plan has been generated.',20)">
+        <span style="font-size:16px">🛒</span> Stock Up
+      </button>
+      <button class="path-action" style="min-width:90px" onclick="weeklyAction('Meal Prep','👨‍🍳','Your weekly meal prep guide is ready — batch cook grains, chop veggies, and boil eggs in advance!',20)">
+        <span style="font-size:16px">👨‍🍳</span> Meal Prep
       </button>
     </div>
     <div class="nav">
@@ -876,7 +887,7 @@
         <p style="font-size:12px;color:var(--text3);text-align:center">Tap "Mark Complete" after you eat</p>
       </div>
       <div style="margin-top:16px">
-        <button class="btn btn-primary" onclick="completeTask()">✓ Mark Complete</button>
+        <button class="btn btn-primary" id="complete-btn" onclick="completeTask()">✓ Mark Complete</button>
         <button class="btn btn-secondary" onclick="closeModal()">Close</button>
       </div>
     </div>
@@ -888,7 +899,7 @@
       <div class="modal-handle"></div>
       <p style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:14px">Settings</p>
       <div class="settings-row" onclick="toast('✏️ Edit profile opened')"><i class="ti ti-user-edit"></i><div class="sr-text"><strong>Edit Profile</strong><span>Name, age, weight, goals</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
-      <div class="settings-row" id="settings-photo-row" onclick="openPhotoFromSettings()"><i class="ti ti-camera" style="font-size:22px;color:var(--ocean);width:26px"></i><div class="sr-text"><strong>Profile Photo</strong><span>Update your avatar photo</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" id="settings-photo-row" onclick="openPhotoFromSettings()"><span style="font-size:22px;width:26px;flex-shrink:0">📷</span><div class="sr-text"><strong>Profile Photo</strong><span>Update your avatar photo</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🌍 World selector opened')"><i class="ti ti-world"></i><div class="sr-text"><strong>Change World</strong><span>Beach, City, Forest, Sci-Fi…</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🥗 Allergies &amp; sensitivities editor')"><i class="ti ti-leaf"></i><div class="sr-text"><strong>Allergies &amp; Sensitivities</strong><span>Meal plan exclusions</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🏋️ Activity preferences editor')"><i class="ti ti-run"></i><div class="sr-text"><strong>Activity Preferences</strong><span>Your preferred exercises</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
@@ -1093,16 +1104,12 @@ function handlePhotoUpload(input) {
   const reader = new FileReader();
   reader.onload = function(e) {
     userPhotoURL = e.target.result;
-    // Show preview
-    document.getElementById('photo-preview').src = userPhotoURL;
-    document.getElementById('photo-preview-wrap').style.display = 'block';
-    // Update upload zone
-    document.getElementById('upload-zone').style.borderColor = 'var(--ocean)';
-    document.getElementById('upload-zone').style.background = 'var(--ocean-light)';
-    document.getElementById('upload-icon').style.display = 'none';
-    document.getElementById('upload-label').textContent = '✓ Photo selected';
-    document.getElementById('upload-sub').textContent = 'Tap to change · Stored on this device only';
-    // Update profile avatar too
+    // Show circular preview
+    const prev = document.getElementById('photo-preview');
+    if (prev) prev.src = userPhotoURL;
+    const wrap = document.getElementById('photo-preview-wrap');
+    if (wrap) wrap.style.display = 'block';
+    // Update profile avatar immediately
     updateProfileAvatar();
     toast('📸 Photo saved to your profile!');
   };
@@ -1129,11 +1136,11 @@ function launchApp(skipped) {
   const nameEl = document.getElementById('prof-name');
   if (nameEl) nameEl.textContent = userName;
 
-  // Disable avatar-shop photo features if no photo provided
+  // When skipped: update settings photo row to show upload prompt (emoji, not tabler icon)
   if (photoSkipped) {
     const photoSettingsRow = document.getElementById('settings-photo-row');
     if (photoSettingsRow) {
-      photoSettingsRow.innerHTML = `<i class="ti ti-camera" style="font-size:22px;color:var(--text3);width:26px"></i><div class="sr-text"><strong style="color:var(--text3)">Upload Photo</strong><span>Add a photo to enable avatar features</span></div><i class="ti ti-chevron-right sr-arrow"></i>`;
+      photoSettingsRow.innerHTML = `<span style="font-size:22px;width:26px;flex-shrink:0">📷</span><div class="sr-text"><strong style="color:var(--text2)">Upload Photo</strong><span>Add a photo to enable avatar features</span></div><i class="ti ti-chevron-right sr-arrow"></i>`;
       photoSettingsRow.onclick = () => openPhotoFromSettings();
     }
   }
@@ -1156,8 +1163,9 @@ function updateProfileAvatar() {
 
 function openPhotoFromSettings() {
   closeSettings();
-  const fi = document.getElementById('photo-input');
-  if (fi) fi.click();
+  // Open gallery picker from settings (no capture attribute = shows gallery on mobile)
+  const gi = document.getElementById('photo-input-gallery');
+  if (gi) gi.click();
 }
 
 // ---- CLOCK ----
@@ -1285,19 +1293,47 @@ const taskData = {
   'breathe2': { icon:'🫁', name:'Evening Wind-Down', desc:'End your day with 4-7-8 breathing to reduce cortisol and prepare your body for restful sleep. Earn 1 shell per minute.', pts:'+1 shell per minute', type:'breathe' },
 };
 
+// Task types that are always completable regardless of day (weekly planning actions)
+const ALWAYS_AVAILABLE = new Set(['meal-plan']);
+
 function openTask(id) {
-  const t = taskData[id]; if(!t) return;
+  const t = taskData[id]; if (!t) return;
+
+  // Check if this is a completed (done) stone — allow viewing, disable re-completion
+  const stoneEl = document.getElementById('st-' + id);
+  const alreadyDone = stoneEl && stoneEl.classList.contains('done');
+
   currentTask = id;
   document.getElementById('m-icon').textContent = t.icon;
   document.getElementById('m-name').textContent = t.name;
-  document.getElementById('m-desc').textContent = t.type==='meal'?'':t.desc;
-  document.getElementById('m-pts').innerHTML = '<i class="ti ti-coin"></i> ' + t.pts;
-  document.getElementById('m-water').style.display = t.type==='water' ? 'block' : 'none';
-  document.getElementById('m-avoid').style.display = t.type==='avoid' ? 'block' : 'none';
-  document.getElementById('m-breathe').style.display = t.type==='breathe' ? 'block' : 'none';
-  document.getElementById('m-meal').style.display = t.type==='meal' ? 'block' : 'none';
-  if(t.type==='meal') document.getElementById('meal-suggestion').textContent = t.meal || '';
-  if(t.type==='breathe') { document.getElementById('breathe-circle').textContent = 'Inhale'; document.getElementById('breathe-pts').textContent=''; }
+  document.getElementById('m-desc').textContent = t.type === 'meal' ? '' : t.desc;
+  document.getElementById('m-pts').innerHTML = '🐚 ' + t.pts;
+  document.getElementById('m-water').style.display   = t.type === 'water'   ? 'block' : 'none';
+  document.getElementById('m-avoid').style.display   = t.type === 'avoid'   ? 'block' : 'none';
+  document.getElementById('m-breathe').style.display = t.type === 'breathe' ? 'block' : 'none';
+  document.getElementById('m-meal').style.display    = t.type === 'meal'    ? 'block' : 'none';
+  if (t.type === 'meal') document.getElementById('meal-suggestion').textContent = t.meal || '';
+  if (t.type === 'breathe') {
+    document.getElementById('breathe-circle').textContent = 'Inhale';
+    document.getElementById('breathe-pts').textContent = '';
+  }
+
+  // Show/hide Mark Complete button based on completion state
+  const completeBtn = document.getElementById('complete-btn');
+  if (completeBtn) {
+    if (alreadyDone && !ALWAYS_AVAILABLE.has(id)) {
+      completeBtn.disabled = true;
+      completeBtn.textContent = '✓ Already completed today';
+      completeBtn.style.opacity = '0.5';
+      completeBtn.style.cursor = 'default';
+    } else {
+      completeBtn.disabled = false;
+      completeBtn.textContent = '✓ Mark Complete';
+      completeBtn.style.opacity = '1';
+      completeBtn.style.cursor = 'pointer';
+    }
+  }
+
   document.getElementById('task-modal').classList.add('open');
 }
 function closeModal() { document.getElementById('task-modal').classList.remove('open'); stopBreathe(); }
@@ -1312,6 +1348,13 @@ function completeTask() {
   if (!currentTask) return;
   const t = taskData[currentTask];
   const st = document.getElementById('st-' + currentTask);
+
+  // Guard: don't re-award a stone already marked done (unless always-available)
+  if (st && st.classList.contains('done') && !ALWAYS_AVAILABLE.has(currentTask)) {
+    toast('✓ Already completed today!');
+    closeModal();
+    return;
+  }
   if (st) {
     st.classList.remove('cur', 'lock');
     st.classList.add('done');
