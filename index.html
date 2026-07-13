@@ -1369,9 +1369,11 @@ async function callStabilityImg2img(prompt, strength, spinnerIds, btnIds) {
     formData.append('image', blob, 'photo.jpg');
     formData.append('prompt', prompt);
     formData.append('model', 'sd3.5-large');
-    formData.append('strength', String(strength));       // 0–1: how much to change the source image
+    formData.append('mode', 'image-to-image');   // required enum for img2img
+    formData.append('strength', String(strength)); // 0–1: how much to transform
     formData.append('output_format', 'jpeg');
-    formData.append('aspect_ratio', '3:4');              // portrait orientation
+    // NOTE: aspect_ratio is NOT sent — it is only valid for text-to-image mode
+    //       and causes "Invalid enum value" if included with an image upload
 
     const response = await fetch('https://api.stability.ai/v2beta/stable-image/generate/sd3', {
       method: 'POST',
@@ -1392,8 +1394,16 @@ async function callStabilityImg2img(prompt, strength, spinnerIds, btnIds) {
       return null;
     }
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      toast('❌ Generation failed: ' + (err.errors ? err.errors[0] : response.status));
+      let errMsg = 'Status ' + response.status;
+      try {
+        const errBody = await response.json();
+        // Stability AI returns errors as { errors: [...] } or { message: "..." }
+        if (errBody.errors && errBody.errors.length) errMsg = errBody.errors.join('; ');
+        else if (errBody.message) errMsg = errBody.message;
+        else if (errBody.name) errMsg = errBody.name + ': ' + (errBody.errors||[]).join(', ');
+      } catch(e) { /* response not JSON */ }
+      toast('❌ ' + errMsg);
+      console.error('Stability AI error body:', errMsg);
       return null;
     }
 
