@@ -1064,6 +1064,7 @@
       <p style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:14px">Settings</p>
       <div class="settings-row" onclick="toast('✏️ Edit profile opened')"><i class="ti ti-user-edit"></i><div class="sr-text"><strong>Edit Profile</strong><span>Name, age, weight, goals</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" id="settings-photo-row" onclick="openPhotoFromSettings()"><span style="font-size:22px;width:26px;flex-shrink:0">📷</span><div class="sr-text"><strong>Profile Photo</strong><span>Update your avatar photo</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" onclick="openApiKeySetup()"><span style="font-size:22px;width:26px;flex-shrink:0">🔑</span><div class="sr-text"><strong>Stability AI API Key</strong><span id="api-key-status">Enter key to enable AI image generation</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" id="settings-progression-row" onclick="openSettingsAI('progression')"><span style="font-size:22px;width:26px;flex-shrink:0">📈</span><div class="sr-text"><strong>Progression Image</strong><span id="settings-prog-status">Generate your future-self image</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" id="settings-avatar-row" onclick="openSettingsAI('avatar')"><span style="font-size:22px;width:26px;flex-shrink:0">🎨</span><div class="sr-text"><strong>Cartoon Avatar</strong><span id="settings-avatar-status">Create your personalised avatar</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🌍 World selector opened')"><i class="ti ti-world"></i><div class="sr-text"><strong>Change World</strong><span>Beach, City, Forest, Sci-Fi…</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
@@ -1073,6 +1074,27 @@
       <div class="settings-row" onclick="toast('🔒 Privacy &amp; data settings')"><i class="ti ti-shield-lock"></i><div class="sr-text"><strong>Privacy &amp; Data</strong><span>Your data stays local &amp; encrypted</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('📊 Admin stats — authorized access only')"><i class="ti ti-chart-bar"></i><div class="sr-text"><strong>Admin Dashboard</strong><span>Aggregate usage statistics</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <button class="btn btn-secondary" onclick="closeSettings()" style="margin-top:10px">Close</button>
+    </div>
+  </div>
+
+  <!-- API KEY SETUP MODAL -->
+  <div class="settings-overlay" id="api-key-modal" onclick="if(event.target===this)closeApiKeySetup()" style="z-index:70">
+    <div class="settings-sheet">
+      <div class="modal-handle"></div>
+      <p style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px">🔑 Stability AI API Key</p>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">Your key is used only to call <strong>api.stability.ai</strong> directly from your device. It is never stored on any server and is cleared when you close the app.</p>
+
+      <div style="background:var(--ocean-light);border:1px solid #9FE1CB;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:14px;font-size:12px;color:var(--ocean-dark);line-height:1.5">
+        🔒 Get your free key at <strong>platform.stability.ai</strong> → API Keys. New accounts receive free trial credits. Each image generation costs ~4 Stability AI credits.
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input type="password" id="stability-key-input" placeholder="sk-..." style="flex:1;padding:11px 13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);outline:none">
+        <button id="key-toggle-btn" onclick="toggleKeyVisibility()" style="padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);cursor:pointer;font-size:12px;font-family:inherit;white-space:nowrap">👁️ Show</button>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveApiKey()">Save Key</button>
+      <button class="btn btn-secondary" onclick="closeApiKeySetup()">Cancel</button>
     </div>
   </div>
 
@@ -1111,10 +1133,11 @@ let userHeightCm = 0;
 let userTargetDate = null;
 let userPhotoURL = null;
 // AI generation state
-let progressionSVG = null;      // SVG string for progression image
-let progressionDesc = '';        // Text description shown in viewer
-let cartoonAvatarSVG = null;    // SVG string for cartoon avatar
-let cartoonAvatarDesc = '';      // Text description shown in viewer
+let stabilityApiKey = '';        // User-entered Stability AI key (memory only)
+let progressionImgSrc = null;    // data:image/jpeg;base64,... for progression
+let progressionDesc = '';
+let cartoonAvatarImgSrc = null;  // data:image/jpeg;base64,... for avatar
+let cartoonAvatarDesc = '';
 let aiViewerMode = null;         // 'progression' | 'avatar'
 
 // ---- ONBOARDING ----
@@ -1311,326 +1334,211 @@ function handlePhotoUpload(input) {
 
 let photoSkipped = false;
 
-// ---- AI GENERATION ----
+// ---- AI GENERATION — Stability AI img2img ----
 
-// Build a descriptive prompt for the Anthropic API
+// Convert a data URL (from FileReader) to a Blob suitable for FormData
+function dataURLtoBlob(dataURL) {
+  const [header, base64] = dataURL.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const binary = atob(base64);
+  const arr = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+// Core Stability AI img2img call
+// endpoint: https://api.stability.ai/v2beta/stable-image/generate/sd3
+// model:    sd3.5-large (image-to-image mode when 'image' field is provided)
+// Returns:  data:image/jpeg;base64,... or null on error
+async function callStabilityImg2img(prompt, strength, spinnerIds, btnIds) {
+  if (!stabilityApiKey) {
+    openApiKeySetup();
+    return null;
+  }
+  if (!userPhotoURL) {
+    toast('📷 Please upload a photo first');
+    return null;
+  }
+
+  spinnerIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'inline-block'; });
+  btnIds.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = true; });
+
+  try {
+    const blob = dataURLtoBlob(userPhotoURL);
+    const formData = new FormData();
+    formData.append('image', blob, 'photo.jpg');
+    formData.append('prompt', prompt);
+    formData.append('model', 'sd3.5-large');
+    formData.append('strength', String(strength));       // 0–1: how much to change the source image
+    formData.append('output_format', 'jpeg');
+    formData.append('aspect_ratio', '3:4');              // portrait orientation
+
+    const response = await fetch('https://api.stability.ai/v2beta/stable-image/generate/sd3', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + stabilityApiKey,
+        'Accept': 'application/json'
+      },
+      body: formData
+    });
+
+    if (response.status === 403) {
+      toast('❌ Invalid API key — please check in Settings');
+      openApiKeySetup();
+      return null;
+    }
+    if (response.status === 402) {
+      toast('❌ Insufficient Stability AI credits — top up at platform.stability.ai');
+      return null;
+    }
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      toast('❌ Generation failed: ' + (err.errors ? err.errors[0] : response.status));
+      return null;
+    }
+
+    const data = await response.json();
+    if (!data.image) throw new Error('No image in response');
+    return 'data:image/jpeg;base64,' + data.image;
+
+  } catch (err) {
+    console.error('Stability AI error:', err);
+    toast('❌ Generation error — check your connection and API key');
+    return null;
+  } finally {
+    spinnerIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    btnIds.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+  }
+}
+
+// Build progression prompt from user's health data
 function buildProgressionPrompt() {
   const weightLbs = userWeightLbs || getWeightLbs();
   const heightCm  = userHeightCm  || getHeightCm();
   const dateStr   = userTargetDate || document.getElementById('inp-date').value;
   const proj      = calcProjection(weightLbs, heightCm, dateStr);
-  const name      = userName || document.getElementById('inp-name').value.trim() || 'the user';
-
-  const currentWt = userUnits === 'imperial'
-    ? weightLbs.toFixed(0) + ' lbs'
-    : (weightLbs * 0.453592).toFixed(0) + ' kg';
-  const heightStr = userUnits === 'imperial'
-    ? Math.floor(heightCm / 30.48) + ' ft ' + Math.round((heightCm % 30.48) / 2.54) + ' in'
-    : heightCm + ' cm';
-
-  let projStr = proj
-    ? `Projected healthy loss by ${dateStr}: ~${proj.projectedLossLbs.toFixed(1)} lbs (${(proj.projectedLossLbs*0.453592).toFixed(1)} kg). New estimated weight: ~${proj.newWeightLbs.toFixed(0)} lbs. New BMI: ${proj.newBmi.toFixed(1)} (${proj.newBmiCat}).`
-    : 'No projection data available.';
-
-  return `You are an AI wellness coach creating an encouraging, life-like SVG portrait illustration for a FitMe app user.
-
-User: ${name}
-Current weight: ${currentWt}
-Height: ${heightStr}
-Target date: ${dateStr}
-${projStr}
-
-Create a realistic, encouraging SVG portrait (viewBox="0 0 300 400") showing this person after achieving their healthy lifestyle goals by their target date. The image should:
-- Show a confident, healthy, happy person standing upright
-- Reflect the projected body composition improvement (leaner, stronger, more energetic)
-- Use warm, life-like skin tones and natural proportions
-- Include subtle details: healthy glow, good posture, light smile
-- Background: a soft gradient in beach/ocean tones (#E1F5EE to #FFF8EE)
-- Style: realistic illustration, not cartoonish — think fitness app "after" photo
-
-Return ONLY valid SVG code starting with <svg. No explanation, no markdown, no other text.`;
-}
-
-function buildAvatarPrompt() {
-  const name = userName || document.getElementById('inp-name').value.trim() || 'Friend';
-  const weightLbs = userWeightLbs || getWeightLbs();
-  const heightCm  = userHeightCm  || getHeightCm();
-  const bmi = (weightLbs * 0.453592) / Math.pow(heightCm / 100, 2);
-  const bmiCat = bmiCategory(bmi);
-  const gender = document.getElementById('inp-gender').value || 'person';
-
-  return `You are an AI avatar artist for the FitMe wellness app. Create a fun, friendly, life-like cartoon avatar SVG portrait.
-
-User: ${name}
-Gender: ${gender}
-BMI category: ${bmiCat}
-App world: Beach 🏖️
-
-Create a colourful, life-like cartoon avatar (viewBox="0 0 300 400") that:
-- Shows a friendly, warmly illustrated ${gender} character with a big smile
-- Has realistic but slightly stylised facial features (not stick-figure, not anime — think Pixar-lite)
-- Wears casual beach-appropriate clothing (light colours, summery)
-- Has a cheerful beach/ocean background (soft blues and sand tones)
-- Shows healthy, glowing skin tone appropriate for a wellness app
-- Includes a small FitMe beach icon detail (shell, starfish, or wave) somewhere subtle
-- Style: warm, inclusive, motivating — the avatar should look like a friend who's excited about health
-
-Return ONLY valid SVG code starting with <svg viewBox="0 0 300 400". No explanation, no markdown, no other text.`;
-}
-
-async function callClaudeForSVG(prompt, spinnerIds, btnIds) {
-  // Show spinners, disable buttons
-  spinnerIds.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'inline-block'; });
-  btnIds.forEach(id => { const el = document.getElementById(id); if(el) { el.disabled = true; } });
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    if (!response.ok) throw new Error('API error ' + response.status);
-    const data = await response.json();
-    const text = data.content && data.content[0] && data.content[0].text;
-    if (!text) throw new Error('Empty response');
-
-    // Extract SVG from response
-    const svgMatch = text.match(/<svg[\s\S]*<\/svg>/i);
-    if (svgMatch) return svgMatch[0];
-
-    // If no SVG found, generate fallback
-    return null;
-  } catch(err) {
-    console.error('Claude API error:', err);
-    return null;
-  } finally {
-    spinnerIds.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
-    btnIds.forEach(id => { const el = document.getElementById(id); if(el) el.disabled = false; });
-  }
-}
-
-// Fallback SVG when API unavailable — a styled placeholder with the user's stats
-function makeProgressionFallbackSVG() {
-  const weightLbs = userWeightLbs || getWeightLbs();
-  const heightCm  = userHeightCm  || getHeightCm();
-  const dateStr   = userTargetDate || '';
-  const proj      = calcProjection(weightLbs, heightCm, dateStr);
-  const loss      = proj ? proj.projectedLossLbs.toFixed(1) : '?';
-  const newBmi    = proj ? proj.newBmi.toFixed(1) : '?';
-  const newCat    = proj ? proj.newBmiCat : '';
+  const months    = proj ? Math.round(proj.weeks / 4.345) : 12;
+  const lossLbs   = proj ? proj.projectedLossLbs.toFixed(0) : '?';
+  const newBmiCat = proj ? proj.newBmiCat : 'Healthy Weight';
   const yr        = dateStr ? new Date(dateStr + 'T12:00:00').getFullYear() : '';
-  return `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#E1F5EE"/>
-      <stop offset="100%" stop-color="#FFF8EE"/>
-    </linearGradient>
-    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1D9E75"/>
-      <stop offset="100%" stop-color="#085041"/>
-    </linearGradient>
-  </defs>
-  <rect width="300" height="400" fill="url(#bg)"/>
-  <!-- Sun -->
-  <circle cx="260" cy="50" r="30" fill="#EF9F27" opacity="0.3"/>
-  <!-- Waves -->
-  <path d="M0 340 Q75 320 150 340 Q225 360 300 340 L300 400 L0 400 Z" fill="#1D9E75" opacity="0.15"/>
-  <path d="M0 360 Q75 340 150 360 Q225 380 300 360 L300 400 L0 400 Z" fill="#1D9E75" opacity="0.25"/>
-  <!-- Person silhouette — leaner/taller version -->
-  <ellipse cx="150" cy="105" rx="38" ry="44" fill="#F4A868"/>
-  <ellipse cx="150" cy="101" rx="34" ry="38" fill="#F9C89B"/>
-  <ellipse cx="150" cy="95" rx="28" ry="30" fill="#F4A868"/>
-  <!-- Hair -->
-  <ellipse cx="150" cy="72" rx="30" ry="18" fill="#5C3D2E"/>
-  <!-- Body — noticeably leaner -->
-  <path d="M115 148 Q150 140 185 148 L192 260 Q150 270 108 260 Z" fill="url(#body)"/>
-  <!-- Arms -->
-  <path d="M115 150 Q95 180 100 220" stroke="#F4A868" stroke-width="14" fill="none" stroke-linecap="round"/>
-  <path d="M185 150 Q205 180 200 220" stroke="#F4A868" stroke-width="14" fill="none" stroke-linecap="round"/>
-  <!-- Legs -->
-  <rect x="123" y="258" width="22" height="90" rx="11" fill="#2C5F8A"/>
-  <rect x="155" y="258" width="22" height="90" rx="11" fill="#2C5F8A"/>
-  <!-- Smile -->
-  <path d="M138 112 Q150 122 162 112" stroke="#5C3D2E" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <!-- Eyes -->
-  <circle cx="140" cy="100" r="4" fill="#5C3D2E"/>
-  <circle cx="160" cy="100" r="4" fill="#5C3D2E"/>
-  <!-- Shine dots on eyes -->
-  <circle cx="142" cy="98" r="1.5" fill="white"/>
-  <circle cx="162" cy="98" r="1.5" fill="white"/>
-  <!-- Star/sparkle effects -->
-  <text x="55" y="180" font-size="18" opacity="0.5">✨</text>
-  <text x="230" y="160" font-size="14" opacity="0.4">⭐</text>
-  <!-- Stats card -->
-  <rect x="30" y="300" width="240" height="78" rx="12" fill="white" opacity="0.85"/>
-  <text x="150" y="322" text-anchor="middle" font-size="11" font-weight="700" fill="#1D9E75" font-family="sans-serif">YOUR PROJECTED SELF ${yr ? 'BY ' + yr : ''}</text>
-  <text x="150" y="342" text-anchor="middle" font-size="12" fill="#1a1a1a" font-family="sans-serif">~${loss} lbs lost · BMI ${newBmi}</text>
-  <text x="150" y="360" text-anchor="middle" font-size="11" fill="#6b7280" font-family="sans-serif">${newCat} · Healthy &amp; Strong 💪</text>
-  <text x="150" y="376" text-anchor="middle" font-size="10" fill="#9ca3af" font-family="sans-serif">Based on AHA healthy lifestyle guidelines</text>
-</svg>`;
+
+  return `Photorealistic full-body portrait of this same person after ${months} months of healthy eating and regular exercise following AHA guidelines. The person has lost approximately ${lossLbs} lbs and achieved a ${newBmiCat} BMI by ${yr}. They look noticeably leaner, stronger, and more toned. Same face, same identity — only their physique has improved. They stand tall with excellent posture, a confident smile, and radiant healthy skin. They are wearing casual athletic clothing. Bright, natural lighting. High-resolution, life-like, photographic quality.`;
 }
 
-function makeAvatarFallbackSVG() {
-  const name = (userName || 'Friend').charAt(0).toUpperCase();
-  const gender = (document.getElementById('inp-gender') && document.getElementById('inp-gender').value) || '';
-  const hairColor = gender === 'Female' ? '#8B4513' : '#5C3D2E';
-  return `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="avbg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#E6F1FB"/>
-      <stop offset="100%" stop-color="#E1F5EE"/>
-    </linearGradient>
-  </defs>
-  <rect width="300" height="400" fill="url(#avbg)" rx="16"/>
-  <!-- Beach scene background -->
-  <ellipse cx="150" cy="420" rx="200" ry="80" fill="#EF9F27" opacity="0.2"/>
-  <path d="M0 320 Q75 300 150 320 Q225 340 300 320 L300 400 L0 400 Z" fill="#1D9E75" opacity="0.2"/>
-  <circle cx="250" cy="60" r="35" fill="#EF9F27" opacity="0.35"/>
-  <!-- Starfish decoration -->
-  <text x="30" y="350" font-size="22" opacity="0.5">⭐</text>
-  <text x="255" y="340" font-size="18" opacity="0.4">🐚</text>
-  <!-- Character body -->
-  <ellipse cx="150" cy="260" rx="55" ry="75" fill="#378ADD"/>
-  <!-- Head -->
-  <ellipse cx="150" cy="148" rx="52" ry="56" fill="#F9C89B"/>
-  <!-- Hair -->
-  <ellipse cx="150" cy="100" rx="52" ry="30" fill="${hairColor}"/>
-  ${gender === 'Female' ? '<path d="M100 105 Q95 160 100 200" stroke="' + hairColor + '" stroke-width="14" fill="none" stroke-linecap="round"/><path d="M200 105 Q205 160 200 200" stroke="' + hairColor + '" stroke-width="14" fill="none" stroke-linecap="round"/>' : ''}
-  <!-- Face features -->
-  <circle cx="133" cy="145" r="7" fill="white"/>
-  <circle cx="167" cy="145" r="7" fill="white"/>
-  <circle cx="135" cy="147" r="4" fill="#5C3D2E"/>
-  <circle cx="169" cy="147" r="4" fill="#5C3D2E"/>
-  <circle cx="136" cy="145" r="1.5" fill="white"/>
-  <circle cx="170" cy="145" r="1.5" fill="white"/>
-  <!-- Big smile -->
-  <path d="M130 168 Q150 185 170 168" stroke="#D85A30" stroke-width="3" fill="none" stroke-linecap="round"/>
-  <!-- Rosy cheeks -->
-  <ellipse cx="118" cy="163" rx="12" ry="8" fill="#F87171" opacity="0.3"/>
-  <ellipse cx="182" cy="163" rx="12" ry="8" fill="#F87171" opacity="0.3"/>
-  <!-- Eyebrows -->
-  <path d="M125 134 Q133 130 141 134" stroke="#5C3D2E" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M159 134 Q167 130 175 134" stroke="#5C3D2E" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <!-- Arms -->
-  <path d="M97 240 Q75 270 85 305" stroke="#F9C89B" stroke-width="18" fill="none" stroke-linecap="round"/>
-  <path d="M203 240 Q225 270 215 305" stroke="#F9C89B" stroke-width="18" fill="none" stroke-linecap="round"/>
-  <!-- Name badge -->
-  <rect x="110" y="200" width="80" height="28" rx="14" fill="white" opacity="0.9"/>
-  <text x="150" y="219" text-anchor="middle" font-size="13" font-weight="700" fill="#1D9E75" font-family="sans-serif">${userName || 'Friend'}</text>
-  <!-- FitMe shell badge -->
-  <circle cx="150" cy="345" r="24" fill="white" opacity="0.85"/>
-  <text x="150" y="354" text-anchor="middle" font-size="20">🏖️</text>
-  <!-- Sparkles -->
-  <text x="50" y="120" font-size="20" opacity="0.6">✨</text>
-  <text x="235" y="130" font-size="16" opacity="0.5">⭐</text>
-</svg>`;
+// Build avatar prompt from user's profile
+function buildAvatarPrompt() {
+  const name    = userName || 'Friend';
+  const gender  = (document.getElementById('inp-gender') && document.getElementById('inp-gender').value) || 'person';
+  const weightLbs = userWeightLbs || getWeightLbs();
+  const heightCm  = userHeightCm  || getHeightCm();
+  const bmi     = heightCm ? (weightLbs * 0.453592) / Math.pow(heightCm / 100, 2) : 25;
+  const bmiCat  = bmiCategory(bmi);
+
+  return `Transform this photo into a vibrant, high-quality cartoon avatar in a modern animated movie style — think Pixar or Disney. The character should retain the person's face shape, skin tone, and distinctive features but rendered as a polished, life-like cartoon. They are smiling warmly and wearing a cheerful beach-themed outfit (light colours, summery). The background is a bright tropical beach with turquoise ocean. The style is warm, inclusive, and motivating — a friendly wellness app character. Current fitness level: ${bmiCat}. Character name: ${name}. Full colour, highly detailed, professional quality illustration.`;
 }
 
+// --- Progression Image ---
 async function generateProgressionImage(context) {
-  if (!userPhotoURL && !userWeightLbs) {
-    toast('Please complete your profile first');
-    return;
-  }
-  const spinners = context === 'ob' ? ['prog-spinner'] : context === 'profile' ? ['prof-prog-spinner'] : ['ai-viewer-spinner'];
-  const btns     = context === 'ob' ? ['prog-gen-btn'] : context === 'profile' ? ['prof-prog-btn'] : ['ai-viewer-regen-btn'];
+  if (!userPhotoURL) { toast('📷 Please upload a photo first'); return; }
+  if (!stabilityApiKey) { openApiKeySetup(); return; }
 
-  toast('✨ Generating your progression image…');
+  const spinners = context === 'ob'      ? ['prog-spinner']
+                 : context === 'profile' ? ['prof-prog-spinner']
+                 :                         ['ai-viewer-spinner'];
+  const btns     = context === 'ob'      ? ['prog-gen-btn']
+                 : context === 'profile' ? ['prof-prog-btn']
+                 :                         ['ai-viewer-regen-btn'];
+
+  toast('📈 Generating your progression image…');
   const prompt = buildProgressionPrompt();
-  let svg = await callClaudeForSVG(prompt, spinners, btns);
-  if (!svg) {
-    svg = makeProgressionFallbackSVG();
-    toast('Using AI-generated illustration (connect API for personalised results)');
-  } else {
-    toast('📈 Progression image created!');
-  }
+  // strength 0.6 = significant transformation while preserving face/identity
+  const imgSrc = await callStabilityImg2img(prompt, 0.6, spinners, btns);
+  if (!imgSrc) return;
 
-  progressionSVG = svg;
-  progressionDesc = `Your personalised progression image based on your current stats and ${userTargetDate ? 'target date of ' + new Date(userTargetDate + 'T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}) : 'your goal timeline'}. Generated using AHA-based healthy lifestyle projections.`;
+  progressionImgSrc = imgSrc;
+  const dateStr = userTargetDate || '';
+  const yr = dateStr ? new Date(dateStr + 'T12:00:00').getFullYear() : '';
+  progressionDesc = `Your AI-generated progression image — what you could look like by ${yr || 'your target date'} with healthy eating and regular exercise. Generated from your photo using Stability AI SD3.5.`;
 
-  // Update all slots
+  const imgTag = `<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:8px" alt="Progression image">`;
   ['prog-img-slot', 'prof-prog-slot'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = svg;
+    if (el) el.innerHTML = imgTag;
   });
-  // Update button labels
-  ['prog-gen-btn','prof-prog-btn'].forEach(id => {
+  ['prog-gen-btn', 'prof-prog-btn'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = '🔄 Regenerate';
   });
-  // Update settings status
   const ss = document.getElementById('settings-prog-status');
   if (ss) ss.textContent = 'Tap to view or regenerate';
-  // Show profile AI section
   updateProfileAIVisibility();
+  toast('📈 Progression image ready!');
 }
 
+// --- Cartoon Avatar ---
 async function generateCartoonAvatar(context) {
-  const spinners = context === 'ob' ? ['avatar-spinner'] : context === 'profile' ? ['prof-avatar-spinner'] : ['ai-viewer-spinner'];
-  const btns     = context === 'ob' ? ['avatar-gen-btn'] : context === 'profile' ? ['prof-avatar-btn'] : ['ai-viewer-regen-btn'];
+  if (!userPhotoURL) { toast('📷 Please upload a photo first'); return; }
+  if (!stabilityApiKey) { openApiKeySetup(); return; }
+
+  const spinners = context === 'ob'      ? ['avatar-spinner']
+                 : context === 'profile' ? ['prof-avatar-spinner']
+                 :                         ['ai-viewer-spinner'];
+  const btns     = context === 'ob'      ? ['avatar-gen-btn']
+                 : context === 'profile' ? ['prof-avatar-btn']
+                 :                         ['ai-viewer-regen-btn'];
 
   toast('🎨 Creating your cartoon avatar…');
   const prompt = buildAvatarPrompt();
-  let svg = await callClaudeForSVG(prompt, spinners, btns);
-  if (!svg) {
-    svg = makeAvatarFallbackSVG();
-    toast('Using illustrated avatar (connect API for personalised results)');
-  } else {
-    toast('🎨 Your avatar is ready!');
-  }
+  // strength 0.72 = strong style transformation to cartoon while keeping likeness
+  const imgSrc = await callStabilityImg2img(prompt, 0.72, spinners, btns);
+  if (!imgSrc) return;
 
-  cartoonAvatarSVG = svg;
-  cartoonAvatarDesc = `Your personalised cartoon avatar for the FitMe Beach World. Tap Regenerate to create a new version.`;
+  cartoonAvatarImgSrc = imgSrc;
+  cartoonAvatarDesc = 'Your personalised cartoon avatar — generated from your photo using Stability AI SD3.5. Tap Regenerate for a fresh version.';
 
-  // Update all slots
+  const imgTag = `<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:8px" alt="Cartoon avatar">`;
   ['avatar-img-slot', 'prof-avatar-slot'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = svg;
+    if (el) el.innerHTML = imgTag;
   });
-  // Update button labels
-  ['avatar-gen-btn','prof-avatar-btn'].forEach(id => {
+  ['avatar-gen-btn', 'prof-avatar-btn'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = '🔄 Regenerate';
   });
-  // Update profile avatar circle with cartoon
+  // Update profile avatar circle
   const av = document.getElementById('big-avatar');
-  if (av) {
-    av.innerHTML = `<div style="width:100%;height:100%;border-radius:50%;overflow:hidden">${svg}</div>`;
-  }
-  // Update settings status
+  if (av) av.innerHTML = `<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="Avatar">`;
+
   const sa = document.getElementById('settings-avatar-status');
   if (sa) sa.textContent = 'Tap to view or regenerate';
   updateProfileAIVisibility();
+  toast('🎨 Your avatar is ready!');
 }
 
-// AI Image Viewer Modal
+// --- AI Image Viewer Modal ---
 function viewAIImage(mode) {
   aiViewerMode = mode;
-  const modal = document.getElementById('ai-viewer-modal');
-  const titleEl = document.getElementById('ai-viewer-title');
-  const subEl   = document.getElementById('ai-viewer-sub');
-  const imgEl   = document.getElementById('ai-viewer-img');
-  const descEl  = document.getElementById('ai-viewer-desc');
-  const regenBtn = document.getElementById('ai-viewer-regen-btn');
+  const titleEl  = document.getElementById('ai-viewer-title');
+  const subEl    = document.getElementById('ai-viewer-sub');
+  const imgEl    = document.getElementById('ai-viewer-img');
+  const descEl   = document.getElementById('ai-viewer-desc');
 
   if (mode === 'progression') {
     titleEl.textContent = '📈 My Progression Image';
     subEl.textContent   = 'What you could look like by your target date';
-    imgEl.innerHTML     = progressionSVG || makeProgressionFallbackSVG();
+    imgEl.innerHTML     = progressionImgSrc
+      ? `<img src="${progressionImgSrc}" style="width:100%;border-radius:var(--radius)" alt="Progression">`
+      : '<p style="padding:20px;text-align:center;color:var(--text2)">Not yet generated — tap Generate below</p>';
     descEl.textContent  = progressionDesc;
-    regenBtn.onclick    = () => generateProgressionImage('viewer');
   } else {
     titleEl.textContent = '🎨 My Cartoon Avatar';
     subEl.textContent   = 'Your personalised FitMe character';
-    imgEl.innerHTML     = cartoonAvatarSVG || makeAvatarFallbackSVG();
+    imgEl.innerHTML     = cartoonAvatarImgSrc
+      ? `<img src="${cartoonAvatarImgSrc}" style="width:100%;border-radius:var(--radius)" alt="Avatar">`
+      : '<p style="padding:20px;text-align:center;color:var(--text2)">Not yet generated — tap Generate below</p>';
     descEl.textContent  = cartoonAvatarDesc;
-    regenBtn.onclick    = () => generateCartoonAvatar('viewer');
   }
-  modal.classList.add('open');
+  document.getElementById('ai-viewer-modal').classList.add('open');
 }
 
 function closeAIViewer() {
@@ -1645,7 +1553,11 @@ function regenFromViewer() {
 function openSettingsAI(mode) {
   closeSettings();
   if (!userPhotoURL) {
-    toast('📷 Please add a profile photo first to generate AI images');
+    toast('📷 Please add a profile photo first');
+    return;
+  }
+  if (!stabilityApiKey) {
+    openApiKeySetup();
     return;
   }
   viewAIImage(mode);
@@ -1653,10 +1565,43 @@ function openSettingsAI(mode) {
 
 function updateProfileAIVisibility() {
   const hasPhoto = !!userPhotoURL;
-  const aiSec    = document.getElementById('profile-ai-section');
-  const noPhoto  = document.getElementById('profile-ai-nophoto');
+  const aiSec   = document.getElementById('profile-ai-section');
+  const noPhoto = document.getElementById('profile-ai-nophoto');
   if (aiSec)   aiSec.style.display   = hasPhoto ? 'block' : 'none';
   if (noPhoto) noPhoto.style.display = hasPhoto ? 'none'  : 'block';
+}
+
+// --- Stability AI API Key Setup ---
+function openApiKeySetup() {
+  document.getElementById('api-key-modal').classList.add('open');
+}
+function closeApiKeySetup() {
+  document.getElementById('api-key-modal').classList.remove('open');
+}
+function saveApiKey() {
+  const val = document.getElementById('stability-key-input').value.trim();
+  if (!val) { toast('Please enter your API key'); return; }
+  if (!val.startsWith('sk-')) {
+    toast('⚠️ Stability AI keys start with sk- — double check your key');
+  }
+  stabilityApiKey = val;
+  document.getElementById('stability-key-input').value = '';
+  // Update the Settings row to show key is saved
+  const statusEl = document.getElementById('api-key-status');
+  if (statusEl) statusEl.textContent = '✅ API key saved (session only)';
+  closeApiKeySetup();
+  toast('✅ Stability AI key saved! You can now generate images.');
+}
+function toggleKeyVisibility() {
+  const inp = document.getElementById('stability-key-input');
+  const btn = document.getElementById('key-toggle-btn');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = '🙈 Hide';
+  } else {
+    inp.type = 'password';
+    btn.textContent = '👁️ Show';
+  }
 }
 
 function launchApp(skipped) {
