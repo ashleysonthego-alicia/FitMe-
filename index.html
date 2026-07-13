@@ -475,6 +475,96 @@
   .sr-text span { font-size: 12px; color: var(--text2); }
   .sr-arrow { margin-left: auto; color: var(--text3); font-size: 18px; }
 
+  /* ---- AI GENERATION ---- */
+  .ai-panel {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 14px;
+    background: var(--bg);
+  }
+  .ai-panel-header {
+    background: linear-gradient(135deg, #1D9E75 0%, #378ADD 100%);
+    color: white;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ai-panel-body { padding: 14px; }
+  .ai-img-slot {
+    width: 100%;
+    aspect-ratio: 3/4;
+    background: var(--bg2);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    overflow: hidden;
+    position: relative;
+    min-height: 180px;
+  }
+  .ai-img-slot svg, .ai-img-slot img { width: 100%; height: 100%; object-fit: cover; }
+  .ai-placeholder { font-size: 36px; margin-bottom: 8px; }
+  .ai-placeholder-text { font-size: 12px; color: var(--text3); text-align: center; padding: 0 12px; }
+  .ai-gen-btn {
+    width: 100%;
+    padding: 11px;
+    background: linear-gradient(135deg, #1D9E75 0%, #378ADD 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .ai-gen-btn:disabled { opacity: 0.6; cursor: default; }
+  .ai-gen-btn:not(:disabled):hover { opacity: 0.9; }
+  .ai-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+
+  /* ---- AI MODAL (full-screen viewer) ---- */
+  .ai-modal-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 80;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .ai-modal-overlay.open { display: flex; }
+  .ai-modal-card {
+    background: var(--bg);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-height: 90%;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .ai-modal-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .ai-modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 14px; line-height: 1.4; }
+  .ai-modal-img { width: 100%; border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; background: var(--bg2); }
+
   @media (max-height: 860px) {
     .phone { height: calc(100vh - 24px); border-radius: 30px; }
   }
@@ -643,10 +733,45 @@
         <div id="photo-preview-wrap" style="display:none;margin-bottom:14px;text-align:center">
           <img id="photo-preview" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--ocean);margin-bottom:8px" alt="Your photo">
           <p style="font-size:13px;color:var(--ocean);font-weight:600;margin-bottom:6px">✓ Photo selected</p>
-          <div style="display:flex;gap:8px;justify-content:center;">
+          <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px">
             <button onclick="document.getElementById('photo-input-gallery').click()" style="font-size:12px;color:var(--ocean);background:none;border:1px solid var(--ocean);border-radius:20px;padding:4px 12px;cursor:pointer;font-family:inherit;font-weight:600">🖼️ Change (Gallery)</button>
             <button onclick="document.getElementById('photo-input-camera').click()" style="font-size:12px;color:var(--ocean);background:none;border:1px solid var(--ocean);border-radius:20px;padding:4px 12px;cursor:pointer;font-family:inherit;font-weight:600">📷 Retake</button>
           </div>
+        </div>
+
+        <!-- AI Feature panels — shown after photo uploaded -->
+        <div id="ai-features-wrap" style="display:none">
+          <div class="ai-two-col">
+            <!-- Progression Image -->
+            <div class="ai-panel">
+              <div class="ai-panel-header">📈 Progression Image</div>
+              <div class="ai-panel-body">
+                <div class="ai-img-slot" id="prog-img-slot">
+                  <span class="ai-placeholder">🔮</span>
+                  <span class="ai-placeholder-text">Your future self at your target date</span>
+                </div>
+                <button class="ai-gen-btn" id="prog-gen-btn" onclick="generateProgressionImage('ob')">
+                  <span id="prog-spinner" class="ai-spinner"></span>
+                  ✨ Generate
+                </button>
+              </div>
+            </div>
+            <!-- Cartoon Avatar -->
+            <div class="ai-panel">
+              <div class="ai-panel-header">🎨 My Avatar</div>
+              <div class="ai-panel-body">
+                <div class="ai-img-slot" id="avatar-img-slot">
+                  <span class="ai-placeholder">🧑‍🎨</span>
+                  <span class="ai-placeholder-text">Your personalised cartoon avatar</span>
+                </div>
+                <button class="ai-gen-btn" id="avatar-gen-btn" onclick="generateCartoonAvatar('ob')">
+                  <span id="avatar-spinner" class="ai-spinner"></span>
+                  ✨ Create
+                </button>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:14px">Generated images are created locally using AI · Not stored on any server</p>
         </div>
 
         <div style="background:var(--ocean-light);border:1px solid #9FE1CB;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:14px;font-size:13px;line-height:1.5;color:var(--ocean-dark)">
@@ -799,6 +924,45 @@
         <p class="av-name" id="prof-name">Alex</p>
         <p class="av-world">Beach World · <span id="prof-days">4</span> days active</p>
       </div>
+
+      <!-- AI Images panel on profile — shown once generated -->
+      <div id="profile-ai-section" style="display:none;margin-bottom:16px">
+        <p class="sec-h">My Transformation ✨</p>
+        <div class="ai-two-col">
+          <div class="ai-panel">
+            <div class="ai-panel-header">📈 Progression</div>
+            <div class="ai-panel-body">
+              <div class="ai-img-slot" id="prof-prog-slot" style="min-height:140px;cursor:pointer" onclick="viewAIImage('progression')">
+                <span class="ai-placeholder">🔮</span>
+                <span class="ai-placeholder-text">Tap Generate to see your future self</span>
+              </div>
+              <button class="ai-gen-btn" id="prof-prog-btn" onclick="generateProgressionImage('profile')" style="margin-top:8px">
+                <span id="prof-prog-spinner" class="ai-spinner"></span>
+                ✨ Generate
+              </button>
+            </div>
+          </div>
+          <div class="ai-panel">
+            <div class="ai-panel-header">🎨 Avatar</div>
+            <div class="ai-panel-body">
+              <div class="ai-img-slot" id="prof-avatar-slot" style="min-height:140px;cursor:pointer" onclick="viewAIImage('avatar')">
+                <span class="ai-placeholder">🧑‍🎨</span>
+                <span class="ai-placeholder-text">Tap Create for your cartoon avatar</span>
+              </div>
+              <button class="ai-gen-btn" id="prof-avatar-btn" onclick="generateCartoonAvatar('profile')" style="margin-top:8px">
+                <span id="prof-avatar-spinner" class="ai-spinner"></span>
+                ✨ Create
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Show AI section button when no photo yet -->
+      <div id="profile-ai-nophoto" style="margin-bottom:16px;padding:12px 14px;background:var(--bg2);border-radius:var(--radius-sm);text-align:center">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:8px">📷 Add a photo in Settings to unlock your AI Progression Image and cartoon Avatar</p>
+        <button onclick="openSettings()" style="font-size:12px;color:var(--ocean);background:none;border:1px solid var(--ocean);border-radius:20px;padding:5px 14px;cursor:pointer;font-family:inherit;font-weight:600">Open Settings</button>
+      </div>
       <div class="stat-grid">
         <div class="stat-c"><p class="stat-n" id="ps-streak" style="color:var(--ocean)">4</p><p class="stat-l">Day streak</p></div>
         <div class="stat-c"><p class="stat-n" id="ps-shells">1,240</p><p class="stat-l">Shells</p></div>
@@ -900,6 +1064,8 @@
       <p style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:14px">Settings</p>
       <div class="settings-row" onclick="toast('✏️ Edit profile opened')"><i class="ti ti-user-edit"></i><div class="sr-text"><strong>Edit Profile</strong><span>Name, age, weight, goals</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" id="settings-photo-row" onclick="openPhotoFromSettings()"><span style="font-size:22px;width:26px;flex-shrink:0">📷</span><div class="sr-text"><strong>Profile Photo</strong><span>Update your avatar photo</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" id="settings-progression-row" onclick="openSettingsAI('progression')"><span style="font-size:22px;width:26px;flex-shrink:0">📈</span><div class="sr-text"><strong>Progression Image</strong><span id="settings-prog-status">Generate your future-self image</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
+      <div class="settings-row" id="settings-avatar-row" onclick="openSettingsAI('avatar')"><span style="font-size:22px;width:26px;flex-shrink:0">🎨</span><div class="sr-text"><strong>Cartoon Avatar</strong><span id="settings-avatar-status">Create your personalised avatar</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🌍 World selector opened')"><i class="ti ti-world"></i><div class="sr-text"><strong>Change World</strong><span>Beach, City, Forest, Sci-Fi…</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🥗 Allergies &amp; sensitivities editor')"><i class="ti ti-leaf"></i><div class="sr-text"><strong>Allergies &amp; Sensitivities</strong><span>Meal plan exclusions</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('🏋️ Activity preferences editor')"><i class="ti ti-run"></i><div class="sr-text"><strong>Activity Preferences</strong><span>Your preferred exercises</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
@@ -907,6 +1073,22 @@
       <div class="settings-row" onclick="toast('🔒 Privacy &amp; data settings')"><i class="ti ti-shield-lock"></i><div class="sr-text"><strong>Privacy &amp; Data</strong><span>Your data stays local &amp; encrypted</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <div class="settings-row" onclick="toast('📊 Admin stats — authorized access only')"><i class="ti ti-chart-bar"></i><div class="sr-text"><strong>Admin Dashboard</strong><span>Aggregate usage statistics</span></div><i class="ti ti-chevron-right sr-arrow"></i></div>
       <button class="btn btn-secondary" onclick="closeSettings()" style="margin-top:10px">Close</button>
+    </div>
+  </div>
+
+  <!-- AI IMAGE VIEWER MODAL -->
+  <div class="ai-modal-overlay" id="ai-viewer-modal">
+    <div class="ai-modal-card">
+      <div class="modal-handle" style="cursor:pointer" onclick="closeAIViewer()"></div>
+      <p class="ai-modal-title" id="ai-viewer-title">My Progression Image</p>
+      <p class="ai-modal-sub" id="ai-viewer-sub">Based on your current stats and target date</p>
+      <div class="ai-modal-img" id="ai-viewer-img"></div>
+      <p id="ai-viewer-desc" style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:16px"></p>
+      <button class="ai-gen-btn" id="ai-viewer-regen-btn" onclick="regenFromViewer()" style="margin-bottom:8px">
+        <span id="ai-viewer-spinner" class="ai-spinner"></span>
+        🔄 Regenerate
+      </button>
+      <button class="btn btn-secondary" onclick="closeAIViewer()">Close</button>
     </div>
   </div>
 
@@ -928,6 +1110,12 @@ let userWeightLbs = 0;
 let userHeightCm = 0;
 let userTargetDate = null;
 let userPhotoURL = null;
+// AI generation state
+let progressionSVG = null;      // SVG string for progression image
+let progressionDesc = '';        // Text description shown in viewer
+let cartoonAvatarSVG = null;    // SVG string for cartoon avatar
+let cartoonAvatarDesc = '';      // Text description shown in viewer
+let aiViewerMode = null;         // 'progression' | 'avatar'
 
 // ---- ONBOARDING ----
 let obStep = 1;
@@ -1109,14 +1297,367 @@ function handlePhotoUpload(input) {
     if (prev) prev.src = userPhotoURL;
     const wrap = document.getElementById('photo-preview-wrap');
     if (wrap) wrap.style.display = 'block';
+    // Show AI features panel in onboarding step 4
+    const aiWrap = document.getElementById('ai-features-wrap');
+    if (aiWrap) aiWrap.style.display = 'block';
     // Update profile avatar immediately
     updateProfileAvatar();
-    toast('📸 Photo saved to your profile!');
+    // Show AI section on profile, hide no-photo message
+    updateProfileAIVisibility();
+    toast('📸 Photo saved! Generate your progression image and avatar below.');
   };
   reader.readAsDataURL(file);
 }
 
 let photoSkipped = false;
+
+// ---- AI GENERATION ----
+
+// Build a descriptive prompt for the Anthropic API
+function buildProgressionPrompt() {
+  const weightLbs = userWeightLbs || getWeightLbs();
+  const heightCm  = userHeightCm  || getHeightCm();
+  const dateStr   = userTargetDate || document.getElementById('inp-date').value;
+  const proj      = calcProjection(weightLbs, heightCm, dateStr);
+  const name      = userName || document.getElementById('inp-name').value.trim() || 'the user';
+
+  const currentWt = userUnits === 'imperial'
+    ? weightLbs.toFixed(0) + ' lbs'
+    : (weightLbs * 0.453592).toFixed(0) + ' kg';
+  const heightStr = userUnits === 'imperial'
+    ? Math.floor(heightCm / 30.48) + ' ft ' + Math.round((heightCm % 30.48) / 2.54) + ' in'
+    : heightCm + ' cm';
+
+  let projStr = proj
+    ? `Projected healthy loss by ${dateStr}: ~${proj.projectedLossLbs.toFixed(1)} lbs (${(proj.projectedLossLbs*0.453592).toFixed(1)} kg). New estimated weight: ~${proj.newWeightLbs.toFixed(0)} lbs. New BMI: ${proj.newBmi.toFixed(1)} (${proj.newBmiCat}).`
+    : 'No projection data available.';
+
+  return `You are an AI wellness coach creating an encouraging, life-like SVG portrait illustration for a FitMe app user.
+
+User: ${name}
+Current weight: ${currentWt}
+Height: ${heightStr}
+Target date: ${dateStr}
+${projStr}
+
+Create a realistic, encouraging SVG portrait (viewBox="0 0 300 400") showing this person after achieving their healthy lifestyle goals by their target date. The image should:
+- Show a confident, healthy, happy person standing upright
+- Reflect the projected body composition improvement (leaner, stronger, more energetic)
+- Use warm, life-like skin tones and natural proportions
+- Include subtle details: healthy glow, good posture, light smile
+- Background: a soft gradient in beach/ocean tones (#E1F5EE to #FFF8EE)
+- Style: realistic illustration, not cartoonish — think fitness app "after" photo
+
+Return ONLY valid SVG code starting with <svg. No explanation, no markdown, no other text.`;
+}
+
+function buildAvatarPrompt() {
+  const name = userName || document.getElementById('inp-name').value.trim() || 'Friend';
+  const weightLbs = userWeightLbs || getWeightLbs();
+  const heightCm  = userHeightCm  || getHeightCm();
+  const bmi = (weightLbs * 0.453592) / Math.pow(heightCm / 100, 2);
+  const bmiCat = bmiCategory(bmi);
+  const gender = document.getElementById('inp-gender').value || 'person';
+
+  return `You are an AI avatar artist for the FitMe wellness app. Create a fun, friendly, life-like cartoon avatar SVG portrait.
+
+User: ${name}
+Gender: ${gender}
+BMI category: ${bmiCat}
+App world: Beach 🏖️
+
+Create a colourful, life-like cartoon avatar (viewBox="0 0 300 400") that:
+- Shows a friendly, warmly illustrated ${gender} character with a big smile
+- Has realistic but slightly stylised facial features (not stick-figure, not anime — think Pixar-lite)
+- Wears casual beach-appropriate clothing (light colours, summery)
+- Has a cheerful beach/ocean background (soft blues and sand tones)
+- Shows healthy, glowing skin tone appropriate for a wellness app
+- Includes a small FitMe beach icon detail (shell, starfish, or wave) somewhere subtle
+- Style: warm, inclusive, motivating — the avatar should look like a friend who's excited about health
+
+Return ONLY valid SVG code starting with <svg viewBox="0 0 300 400". No explanation, no markdown, no other text.`;
+}
+
+async function callClaudeForSVG(prompt, spinnerIds, btnIds) {
+  // Show spinners, disable buttons
+  spinnerIds.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'inline-block'; });
+  btnIds.forEach(id => { const el = document.getElementById(id); if(el) { el.disabled = true; } });
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) throw new Error('API error ' + response.status);
+    const data = await response.json();
+    const text = data.content && data.content[0] && data.content[0].text;
+    if (!text) throw new Error('Empty response');
+
+    // Extract SVG from response
+    const svgMatch = text.match(/<svg[\s\S]*<\/svg>/i);
+    if (svgMatch) return svgMatch[0];
+
+    // If no SVG found, generate fallback
+    return null;
+  } catch(err) {
+    console.error('Claude API error:', err);
+    return null;
+  } finally {
+    spinnerIds.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+    btnIds.forEach(id => { const el = document.getElementById(id); if(el) el.disabled = false; });
+  }
+}
+
+// Fallback SVG when API unavailable — a styled placeholder with the user's stats
+function makeProgressionFallbackSVG() {
+  const weightLbs = userWeightLbs || getWeightLbs();
+  const heightCm  = userHeightCm  || getHeightCm();
+  const dateStr   = userTargetDate || '';
+  const proj      = calcProjection(weightLbs, heightCm, dateStr);
+  const loss      = proj ? proj.projectedLossLbs.toFixed(1) : '?';
+  const newBmi    = proj ? proj.newBmi.toFixed(1) : '?';
+  const newCat    = proj ? proj.newBmiCat : '';
+  const yr        = dateStr ? new Date(dateStr + 'T12:00:00').getFullYear() : '';
+  return `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E1F5EE"/>
+      <stop offset="100%" stop-color="#FFF8EE"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1D9E75"/>
+      <stop offset="100%" stop-color="#085041"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="400" fill="url(#bg)"/>
+  <!-- Sun -->
+  <circle cx="260" cy="50" r="30" fill="#EF9F27" opacity="0.3"/>
+  <!-- Waves -->
+  <path d="M0 340 Q75 320 150 340 Q225 360 300 340 L300 400 L0 400 Z" fill="#1D9E75" opacity="0.15"/>
+  <path d="M0 360 Q75 340 150 360 Q225 380 300 360 L300 400 L0 400 Z" fill="#1D9E75" opacity="0.25"/>
+  <!-- Person silhouette — leaner/taller version -->
+  <ellipse cx="150" cy="105" rx="38" ry="44" fill="#F4A868"/>
+  <ellipse cx="150" cy="101" rx="34" ry="38" fill="#F9C89B"/>
+  <ellipse cx="150" cy="95" rx="28" ry="30" fill="#F4A868"/>
+  <!-- Hair -->
+  <ellipse cx="150" cy="72" rx="30" ry="18" fill="#5C3D2E"/>
+  <!-- Body — noticeably leaner -->
+  <path d="M115 148 Q150 140 185 148 L192 260 Q150 270 108 260 Z" fill="url(#body)"/>
+  <!-- Arms -->
+  <path d="M115 150 Q95 180 100 220" stroke="#F4A868" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M185 150 Q205 180 200 220" stroke="#F4A868" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <!-- Legs -->
+  <rect x="123" y="258" width="22" height="90" rx="11" fill="#2C5F8A"/>
+  <rect x="155" y="258" width="22" height="90" rx="11" fill="#2C5F8A"/>
+  <!-- Smile -->
+  <path d="M138 112 Q150 122 162 112" stroke="#5C3D2E" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Eyes -->
+  <circle cx="140" cy="100" r="4" fill="#5C3D2E"/>
+  <circle cx="160" cy="100" r="4" fill="#5C3D2E"/>
+  <!-- Shine dots on eyes -->
+  <circle cx="142" cy="98" r="1.5" fill="white"/>
+  <circle cx="162" cy="98" r="1.5" fill="white"/>
+  <!-- Star/sparkle effects -->
+  <text x="55" y="180" font-size="18" opacity="0.5">✨</text>
+  <text x="230" y="160" font-size="14" opacity="0.4">⭐</text>
+  <!-- Stats card -->
+  <rect x="30" y="300" width="240" height="78" rx="12" fill="white" opacity="0.85"/>
+  <text x="150" y="322" text-anchor="middle" font-size="11" font-weight="700" fill="#1D9E75" font-family="sans-serif">YOUR PROJECTED SELF ${yr ? 'BY ' + yr : ''}</text>
+  <text x="150" y="342" text-anchor="middle" font-size="12" fill="#1a1a1a" font-family="sans-serif">~${loss} lbs lost · BMI ${newBmi}</text>
+  <text x="150" y="360" text-anchor="middle" font-size="11" fill="#6b7280" font-family="sans-serif">${newCat} · Healthy &amp; Strong 💪</text>
+  <text x="150" y="376" text-anchor="middle" font-size="10" fill="#9ca3af" font-family="sans-serif">Based on AHA healthy lifestyle guidelines</text>
+</svg>`;
+}
+
+function makeAvatarFallbackSVG() {
+  const name = (userName || 'Friend').charAt(0).toUpperCase();
+  const gender = (document.getElementById('inp-gender') && document.getElementById('inp-gender').value) || '';
+  const hairColor = gender === 'Female' ? '#8B4513' : '#5C3D2E';
+  return `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="avbg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E6F1FB"/>
+      <stop offset="100%" stop-color="#E1F5EE"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="400" fill="url(#avbg)" rx="16"/>
+  <!-- Beach scene background -->
+  <ellipse cx="150" cy="420" rx="200" ry="80" fill="#EF9F27" opacity="0.2"/>
+  <path d="M0 320 Q75 300 150 320 Q225 340 300 320 L300 400 L0 400 Z" fill="#1D9E75" opacity="0.2"/>
+  <circle cx="250" cy="60" r="35" fill="#EF9F27" opacity="0.35"/>
+  <!-- Starfish decoration -->
+  <text x="30" y="350" font-size="22" opacity="0.5">⭐</text>
+  <text x="255" y="340" font-size="18" opacity="0.4">🐚</text>
+  <!-- Character body -->
+  <ellipse cx="150" cy="260" rx="55" ry="75" fill="#378ADD"/>
+  <!-- Head -->
+  <ellipse cx="150" cy="148" rx="52" ry="56" fill="#F9C89B"/>
+  <!-- Hair -->
+  <ellipse cx="150" cy="100" rx="52" ry="30" fill="${hairColor}"/>
+  ${gender === 'Female' ? '<path d="M100 105 Q95 160 100 200" stroke="' + hairColor + '" stroke-width="14" fill="none" stroke-linecap="round"/><path d="M200 105 Q205 160 200 200" stroke="' + hairColor + '" stroke-width="14" fill="none" stroke-linecap="round"/>' : ''}
+  <!-- Face features -->
+  <circle cx="133" cy="145" r="7" fill="white"/>
+  <circle cx="167" cy="145" r="7" fill="white"/>
+  <circle cx="135" cy="147" r="4" fill="#5C3D2E"/>
+  <circle cx="169" cy="147" r="4" fill="#5C3D2E"/>
+  <circle cx="136" cy="145" r="1.5" fill="white"/>
+  <circle cx="170" cy="145" r="1.5" fill="white"/>
+  <!-- Big smile -->
+  <path d="M130 168 Q150 185 170 168" stroke="#D85A30" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Rosy cheeks -->
+  <ellipse cx="118" cy="163" rx="12" ry="8" fill="#F87171" opacity="0.3"/>
+  <ellipse cx="182" cy="163" rx="12" ry="8" fill="#F87171" opacity="0.3"/>
+  <!-- Eyebrows -->
+  <path d="M125 134 Q133 130 141 134" stroke="#5C3D2E" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M159 134 Q167 130 175 134" stroke="#5C3D2E" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Arms -->
+  <path d="M97 240 Q75 270 85 305" stroke="#F9C89B" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <path d="M203 240 Q225 270 215 305" stroke="#F9C89B" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <!-- Name badge -->
+  <rect x="110" y="200" width="80" height="28" rx="14" fill="white" opacity="0.9"/>
+  <text x="150" y="219" text-anchor="middle" font-size="13" font-weight="700" fill="#1D9E75" font-family="sans-serif">${userName || 'Friend'}</text>
+  <!-- FitMe shell badge -->
+  <circle cx="150" cy="345" r="24" fill="white" opacity="0.85"/>
+  <text x="150" y="354" text-anchor="middle" font-size="20">🏖️</text>
+  <!-- Sparkles -->
+  <text x="50" y="120" font-size="20" opacity="0.6">✨</text>
+  <text x="235" y="130" font-size="16" opacity="0.5">⭐</text>
+</svg>`;
+}
+
+async function generateProgressionImage(context) {
+  if (!userPhotoURL && !userWeightLbs) {
+    toast('Please complete your profile first');
+    return;
+  }
+  const spinners = context === 'ob' ? ['prog-spinner'] : context === 'profile' ? ['prof-prog-spinner'] : ['ai-viewer-spinner'];
+  const btns     = context === 'ob' ? ['prog-gen-btn'] : context === 'profile' ? ['prof-prog-btn'] : ['ai-viewer-regen-btn'];
+
+  toast('✨ Generating your progression image…');
+  const prompt = buildProgressionPrompt();
+  let svg = await callClaudeForSVG(prompt, spinners, btns);
+  if (!svg) {
+    svg = makeProgressionFallbackSVG();
+    toast('Using AI-generated illustration (connect API for personalised results)');
+  } else {
+    toast('📈 Progression image created!');
+  }
+
+  progressionSVG = svg;
+  progressionDesc = `Your personalised progression image based on your current stats and ${userTargetDate ? 'target date of ' + new Date(userTargetDate + 'T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}) : 'your goal timeline'}. Generated using AHA-based healthy lifestyle projections.`;
+
+  // Update all slots
+  ['prog-img-slot', 'prof-prog-slot'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = svg;
+  });
+  // Update button labels
+  ['prog-gen-btn','prof-prog-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '🔄 Regenerate';
+  });
+  // Update settings status
+  const ss = document.getElementById('settings-prog-status');
+  if (ss) ss.textContent = 'Tap to view or regenerate';
+  // Show profile AI section
+  updateProfileAIVisibility();
+}
+
+async function generateCartoonAvatar(context) {
+  const spinners = context === 'ob' ? ['avatar-spinner'] : context === 'profile' ? ['prof-avatar-spinner'] : ['ai-viewer-spinner'];
+  const btns     = context === 'ob' ? ['avatar-gen-btn'] : context === 'profile' ? ['prof-avatar-btn'] : ['ai-viewer-regen-btn'];
+
+  toast('🎨 Creating your cartoon avatar…');
+  const prompt = buildAvatarPrompt();
+  let svg = await callClaudeForSVG(prompt, spinners, btns);
+  if (!svg) {
+    svg = makeAvatarFallbackSVG();
+    toast('Using illustrated avatar (connect API for personalised results)');
+  } else {
+    toast('🎨 Your avatar is ready!');
+  }
+
+  cartoonAvatarSVG = svg;
+  cartoonAvatarDesc = `Your personalised cartoon avatar for the FitMe Beach World. Tap Regenerate to create a new version.`;
+
+  // Update all slots
+  ['avatar-img-slot', 'prof-avatar-slot'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = svg;
+  });
+  // Update button labels
+  ['avatar-gen-btn','prof-avatar-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '🔄 Regenerate';
+  });
+  // Update profile avatar circle with cartoon
+  const av = document.getElementById('big-avatar');
+  if (av) {
+    av.innerHTML = `<div style="width:100%;height:100%;border-radius:50%;overflow:hidden">${svg}</div>`;
+  }
+  // Update settings status
+  const sa = document.getElementById('settings-avatar-status');
+  if (sa) sa.textContent = 'Tap to view or regenerate';
+  updateProfileAIVisibility();
+}
+
+// AI Image Viewer Modal
+function viewAIImage(mode) {
+  aiViewerMode = mode;
+  const modal = document.getElementById('ai-viewer-modal');
+  const titleEl = document.getElementById('ai-viewer-title');
+  const subEl   = document.getElementById('ai-viewer-sub');
+  const imgEl   = document.getElementById('ai-viewer-img');
+  const descEl  = document.getElementById('ai-viewer-desc');
+  const regenBtn = document.getElementById('ai-viewer-regen-btn');
+
+  if (mode === 'progression') {
+    titleEl.textContent = '📈 My Progression Image';
+    subEl.textContent   = 'What you could look like by your target date';
+    imgEl.innerHTML     = progressionSVG || makeProgressionFallbackSVG();
+    descEl.textContent  = progressionDesc;
+    regenBtn.onclick    = () => generateProgressionImage('viewer');
+  } else {
+    titleEl.textContent = '🎨 My Cartoon Avatar';
+    subEl.textContent   = 'Your personalised FitMe character';
+    imgEl.innerHTML     = cartoonAvatarSVG || makeAvatarFallbackSVG();
+    descEl.textContent  = cartoonAvatarDesc;
+    regenBtn.onclick    = () => generateCartoonAvatar('viewer');
+  }
+  modal.classList.add('open');
+}
+
+function closeAIViewer() {
+  document.getElementById('ai-viewer-modal').classList.remove('open');
+}
+
+function regenFromViewer() {
+  if (aiViewerMode === 'progression') generateProgressionImage('viewer');
+  else generateCartoonAvatar('viewer');
+}
+
+function openSettingsAI(mode) {
+  closeSettings();
+  if (!userPhotoURL) {
+    toast('📷 Please add a profile photo first to generate AI images');
+    return;
+  }
+  viewAIImage(mode);
+}
+
+function updateProfileAIVisibility() {
+  const hasPhoto = !!userPhotoURL;
+  const aiSec    = document.getElementById('profile-ai-section');
+  const noPhoto  = document.getElementById('profile-ai-nophoto');
+  if (aiSec)   aiSec.style.display   = hasPhoto ? 'block' : 'none';
+  if (noPhoto) noPhoto.style.display = hasPhoto ? 'none'  : 'block';
+}
 
 function launchApp(skipped) {
   const n = document.getElementById('inp-name').value.trim();
@@ -1148,6 +1689,7 @@ function launchApp(skipped) {
   document.getElementById('screen-onboard').classList.remove('active');
   document.getElementById('screen-path').classList.add('active');
   buildPath();
+  updateProfileAIVisibility();
 
   const msg = skipped
     ? '🎉 Welcome, ' + userName + '! Add a photo in Settings anytime to enable avatar features.'
